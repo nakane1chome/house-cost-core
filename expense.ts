@@ -18,13 +18,15 @@ export class Expense  {
     readonly desc: string;
     readonly repeat_period: number;
     public expenses : Array<[string, Expense]>;
-    public node_info: NodeInfo | null = null;
+    public node_info: NodeInfo ;
 
     constructor(label: string, desc: string, repeat_period?: number) {
         this.expenses = new Array<[string, Expense]>();
         this.repeat_period = repeat_period ?? Expense.ONE_YEAR;
         this.label = label;
         this.desc = desc;
+        this.node_info = new NodeInfo(label, desc);
+
     }
 
     static describe_period(v: number) : string {

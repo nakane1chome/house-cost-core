@@ -9,7 +9,7 @@ import { Postcode2Lga } from "./postcode2lga"
 export class CouncilRates extends Expense {
 
     constructor(params: Params) {
-        super("Council Rates",
+        super("Council Rates (AU)",
              "Local goverment taxes levied on the property owner.", 
               Expense.ONE_YEAR)
         const lga = Postcode2Lga(params.location.postcode);

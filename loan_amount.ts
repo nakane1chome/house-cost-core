@@ -7,21 +7,19 @@ import { Expense,  UpfrontExpense } from "./expense";
 import { Params } from "./param";
 import { GrantAmount } from "./grant_amount";
 import { StampDuty } from "./stamp_duty";
+import { JapanContractStampDuty,  JapanPropertyAcquisitionTax, JapanTitleRegistrationStampDuty } from "./japan_stamp_duty";
 import { TransferReg } from "./transfer_reg";
 
 
 export class LoanAmount extends Expense {
 
-    public grants :GrantAmount;
-    public duty :StampDuty;
-    public transfer_reg :TransferReg;
+    //public grants :GrantAmount;
+    //public duty :StampDuty;
+    //public transfer_reg :TransferReg;
 
     constructor(params: Params) {
         super("Loan Amount",
              "The amount of money that needs to be borrowed to purchase the property.")
-        this.grants = new GrantAmount(params);
-        this.duty = new StampDuty(params) ;
-        this.transfer_reg = new TransferReg(params);
 
         const value = new UpfrontExpense("Property Value",
                                          "The amount paid for the property purchased.",
@@ -32,9 +30,19 @@ export class LoanAmount extends Expense {
 
         this.add(value)
         this.sub(deposit);
-        this.sub(this.grants);
-        this.add(this.duty);
-        this.add(this.transfer_reg);
+
+        
+        if (params.location.country == "JPN") {
+            this.add(new JapanContractStampDuty(params));            
+            this.add(new JapanPropertyAcquisitionTax(params));            
+            this.add(new JapanTitleRegistrationStampDuty(params));
+        }
+        if (params.location.country == "AUS") {
+            this.sub(new GrantAmount(params));
+            this.add(new StampDuty(params) );
+            this.add(new TransferReg(params));
+        }
+
         if (params.config.new_home) {
 
             const build = new UpfrontExpense("Build Cost",

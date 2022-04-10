@@ -12,6 +12,8 @@ import {NewTaxesSa} from "./taxes_sa"
 import {NewWaterSa} from "./water"
 import {CouncilRates} from "./council_rates"
 import {PropertyInsurance} from "./property_insurance"
+import {JapanFixedAssetTax} from "./japan_fixed_asset_tax"
+import { NodeInfo } from "./node_info";
 
 export class CostOfOwnership {
 
@@ -40,35 +42,34 @@ export class CostOfOwnership {
         this.loan_principle = new MortgagePrinciple(params, loan_amount);
         this.deposit_income = new DepositIncome(params);
 
-        
         this.cost = new Expense("Cost of Ownership",
-                                   "The cost refers to all expenses and financing costs " +
-                                   "that do not contribute to the equity in the property.");
+                                   "All expenses and financing costs. This is the equivalent of rent. " +
+                                   "(Excludes equity in the property.)");
         this.cost_finance = new Expense("Finance Cost",
-                                           "The cost of finance refers to the cost borrowing money " +
+                                           "The cost borrowing money " +
                                            "to purchase and the opportunity cost of not investing " +
-                                           "any upfront equity (deposit) elsewhere.",
+                                           "the equity elsewhere.",
                                        Expense.ONE_YEAR);
         this.cost_expenses = new Expense("Ongoing Expenses",
-                                           "The cost of expenses that must be paid for by the property owner.",
+                                           "Costs that must be paid for by the property owner.",
                                         Expense.ONE_YEAR);
         this.cash_flow = new Expense("Cash Flow",
-                                        "The cash flow that must be provided to maintain ownership of the property.",
+                                     "Sum of all payments needed to maintain ownership of the property.",
                                     Expense.ONE_YEAR);
 
+        if (params.location.country === "JPN") {
+            this.cost_expenses.add(new JapanFixedAssetTax(params));
+        }
         if (params.location.country === "AUS") {
-            const taxes = new NewTaxesSa(params);
-            const water = new NewWaterSa(params);
-            const rates = new CouncilRates(params);
-            this.cost_expenses.add(taxes);
-            this.cost_expenses.add(water);
-            this.cost_expenses.add(rates);
+            this.cost_expenses.add(new NewTaxesSa(params));
+            this.cost_expenses.add(new NewWaterSa(params));
+            this.cost_expenses.add(new CouncilRates(params));
         }
         const insurance = new PropertyInsurance(params);
         this.cost_expenses.add(insurance);
 
         this.loan_payments = new Expense("Loan Payments",
-                                           "Payments that must be made to maintain the home loan.");
+                                           "Payments that must be made to service the home loan.");
         
         this.cost_finance.add(this.loan_interest); // Actual cost
         this.cost_finance.add(this.deposit_income)  // Oportunity cost

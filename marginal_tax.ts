@@ -33,6 +33,8 @@
 // 
 // The above rates do not include the Medicare levy of 2%.
 
+import {find_bracket, find_upper_bound} from "./utils"
+
 export class TaxBracket {
 
     private static _TAX_BRACKETS = [
@@ -48,22 +50,7 @@ export class TaxBracket {
     static GetPercent( income: number) : number {
         console.log("GET PERCENT TAX!",income);
         const medicare_levy = income < 23365 ? 0 : TaxBracket._MEDICARE_LEVY;
-        for (let i=0; i< TaxBracket._TAX_BRACKETS.length;i++) {
-            if (income < TaxBracket._TAX_BRACKETS[i][0]) {
-                return TaxBracket._TAX_BRACKETS[i][1]  + medicare_levy;
-            }
-        }
-        return TaxBracket._TAX_BRACKETS[TaxBracket._TAX_BRACKETS.length-1][1]  + medicare_levy;
-    }
-    
-    /** Return the next bracket boundary, the top income in this  bracket */
-    static UpperBound( income: number) : number {
-        for (let i=0; i<TaxBracket._TAX_BRACKETS.length;i++) {
-            if (income < TaxBracket._TAX_BRACKETS[i][0]) {
-                return TaxBracket._TAX_BRACKETS[i][0]-1;
-            }
-        }
-        return income;
+        return find_bracket(income, TaxBracket._TAX_BRACKETS) + medicare_levy;
     }
 
     /** Return the marginal tax for a given amount on top of a base income */
@@ -76,7 +63,7 @@ export class TaxBracket {
             return r0*additional_income;
         } 
         
-        const upper_bound = TaxBracket.UpperBound(base_income);
+        const upper_bound = find_upper_bound(base_income, TaxBracket._TAX_BRACKETS);
         const income_for_next_bracket = ((base_income + additional_income) - upper_bound) - base_income;
         const income_in_this_bracket = additional_income - income_for_next_bracket;
         console.log("MARGINAL TAX!",r0,r1, upper_bound, income_in_this_bracket, income_for_next_bracket);

@@ -5,6 +5,8 @@
 
 export class Property {
     value= 0;
+    land_value= 0;
+    building_value= 0;
     community_title=false;
 }
 export class Economy {
@@ -17,7 +19,8 @@ export class Purchaser {
 }
 export class Location {
     country="";
-    postcode= 0;
+    fixed= false;
+    postcode= "";
     state= "";
     currency="-";
 }

@@ -66,7 +66,8 @@ def main():
             fout.write(f"{indent}" +"}\n")
 
     with open(fout_name, "w") as fout:
-        fout.write("export function Postcode2Lga(postcode: number) : string {\n")
+        fout.write("export function Postcode2Lga(postcode_raw: string) : string {\n")
+        fout.write("    const postcode = parseInt(postcode_raw);\n")
         for elem in out_list:
             fout.write("// " + str(elem) + "\n" )
         ll = len(out_list)

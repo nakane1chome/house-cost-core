@@ -1,29 +1,85 @@
-import { ComputedAmount } from "./computed_amount";
+export class BaseAmount  {
 
+    public is_known = false;
+    public amount = 0;
 
-export abstract class Expense extends ComputedAmount {
-    
-    // Return false if the expense will eventually be paid off
-    abstract perpetual(): boolean;
-    
-    // total cost if perpetual, 
-    abstract total(): number;
-
-    // total cost if perpetual, 
-    get(): number {
-        return this.total();
+    protected update(amount: number) : void {
+        this.is_known = true;
+        this.amount = amount; 
     }
-    
-    // Term of the expense, in months
-    abstract term(): number;
+    protected increment(amount: number) : void {
+        if (this.is_known && this.amount) {
+            this.amount += amount;             
+        } else {
+            this.is_known = true;
+            this.amount = amount; 
+        }
+    }
+} 
+
+export class ExpenseAnnual extends BaseAmount {
+
+    constructor() {
+        super();
+    }
+
+    annual() : number {
+        return this.amount;
+    }
+
+    // Return false if the expense will eventually be paid off
+    perpetual() : boolean {return true;}
     
     // annual expense
-    abstract annual(): number;
+    monthly() : number {return this.annual()/12;}
     
-    // monthly expense
-    abstract monthly(): number;
+    // annual expense
+    weekly() : number {return this.annual()/52;}
+
+}
+
+export class  ExpenseTerm extends BaseAmount {
+
+    private _term_months : number;
+
+    constructor(term_months: number) {
+        super();
+        this._term_months = term_months;
+    }
+
+    term(): number {return this._term_months}
+
+    // total cost the original amount
+    total() : number {return this.amount ;}   
+
+    // Return false if the expense will eventually be paid off
+    perpetual() : boolean {return false;}
+    
+    // annual expense
+    annual() : number {return this.monthly()*12;}
+    
+    // The totel expense amortized over the term
+    monthly() : number {return this.total()/this.term();}
     
     // weekly expense
-    abstract weekly(): number;
+    weekly() : number {return this.annual()/52;}
+    
+}
+
+export class ExpenseSet extends BaseAmount  {
+
+    public expenses : Array<BaseAmount>;
+
+    constructor() {
+        super();
+        this.expenses = new Array<BaseAmount>();
+    }
+
+    add(e: BaseAmount) : void {
+        this.expenses.push(e);
+        if (e.is_known) {
+            this.increment(e.amount);
+        }
+    }
 
 }

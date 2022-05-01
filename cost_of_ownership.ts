@@ -1,6 +1,5 @@
-import { ParamRow, ParamTable, ParamView } from "./param";
-
-import {ExpenseSet} from "./expense_set";
+import {Params} from "./param";
+import {ExpenseSet} from "./expense";
 import {MortgageInterest} from "./mortgage_interest"
 import {MortgagePrinciple} from "./mortgage_principle"
 import {DepositIncome} from "./deposit_income"
@@ -8,8 +7,7 @@ import {NewTaxesSa} from "./taxes_sa"
 import {NewWaterSa} from "./water"
 import {CouncilRates} from "./council_rates"
 import {PropertyInsurance} from "./property_insurance"
-import { Expense } from "./expense";
-
+import {ExpenseAnnual} from "./expense";
 
 export class CostOfOwnership {
 
@@ -24,28 +22,25 @@ export class CostOfOwnership {
     public loan_principle : MortgagePrinciple;
     public deposit_income : DepositIncome;
 
-    public taxes : Expense;
-    public water : Expense;
+    public taxes : ExpenseAnnual;
+    public water : ExpenseAnnual;
     public rates : CouncilRates;
     public insurance : PropertyInsurance;
 
-    constructor(t: ParamTable) {
+    constructor(params: Params, loan_amount: number) {
 
-        // Cost of ownwer ship
-        this.cost = new ExpenseSet(t);
-        // Cash flow required to own (cost + principle)
-        this.cash_flow = new ExpenseSet(t);
-        // Payments needed to service loan
-        this.loan_payments = new ExpenseSet(t);
+        this.loan_interest = new MortgageInterest(params, loan_amount);
+        this.loan_principle = new MortgagePrinciple(params, loan_amount);
+        this.deposit_income = new DepositIncome(params);
         
-        this.loan_interest = new MortgageInterest(t);
-        this.loan_principle = new MortgagePrinciple(t);
-        this.deposit_income = new DepositIncome(t);
-        
-        this.taxes = NewTaxesSa(t);
-        this.water = NewWaterSa(t);
-        this.rates = new CouncilRates(t);
-        this.insurance = new PropertyInsurance(t);
+        this.taxes = new NewTaxesSa(params);
+        this.water = new NewWaterSa(params);
+        this.rates = new CouncilRates(params);
+        this.insurance = new PropertyInsurance(params);
+
+        this.cost = new ExpenseSet();
+        this.cash_flow = new ExpenseSet();
+        this.loan_payments = new ExpenseSet();
         
         this.cost.add(this.loan_interest);
         this.cost.add(this.deposit_income)
@@ -63,12 +58,6 @@ export class CostOfOwnership {
 
         this.loan_payments.add(this.loan_interest);
         this.loan_payments.add(this.loan_principle);
-    }
-
-    update(p: ParamRow): void {
-        this.cost.update(p);
-        this.cash_flow.update(p);
-        this.loan_payments.update(p);
     }
 
 }

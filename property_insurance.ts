@@ -1,7 +1,7 @@
 import { Params } from "./param";
-import { ExpenseAnnual } from "./expense";
+import { Expense } from "./expense";
 
-export class PropertyInsurance extends ExpenseAnnual {
+export class PropertyInsurance extends Expense {
 
     // rough guess From coles insurance
     private static _BASE = 300;
@@ -9,7 +9,9 @@ export class PropertyInsurance extends ExpenseAnnual {
     private static _SLOPE = 130.0 / 100000.0;
 
     constructor(params: Params) {
-        super()
+        super("Property Insurance",
+             "Cost of insuring the buildings on the property.",
+             Expense.ONE_YEAR)
         const r = params.property.value - PropertyInsurance._START;
         let amount = 0;
         if (r < 0) {
@@ -17,7 +19,7 @@ export class PropertyInsurance extends ExpenseAnnual {
         } else {
             amount = PropertyInsurance._BASE + PropertyInsurance._SLOPE*r;
         }
-        this.update(amount);
+        this.update_repeating(amount);
     }
 }
 

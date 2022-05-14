@@ -1,15 +1,18 @@
 import { Params } from "./param";
 import { TaxedAmount } from "./taxed_amount";
 import { SavingsInterest } from "./savings_interest";
-import { ExpenseAnnual } from "./expense";
+import { Expense } from "./expense";
 
-export class DepositIncome extends ExpenseAnnual {
+export class DepositIncome extends Expense {
 
     public savings_interest : SavingsInterest;
     public taxed_amounts : Array<TaxedAmount>;
 
     constructor(params: Params) {
-        super()
+        super("Deposit Income",
+             "The income that could have been earned by equity invested in the house as a deposit. " +
+            "Could be interest or other returns.",
+             Expense.ONE_YEAR)
         let amount = 0;
         const  purchaser_cnt = params.purchasers.length;
         this.savings_interest = new SavingsInterest(params);
@@ -20,6 +23,6 @@ export class DepositIncome extends ExpenseAnnual {
             this.taxed_amounts.push(taxed_amount);
             amount -= taxed_amount.annual();
         }
-        this.update(amount);
+        this.update_repeating(amount);
     }
 }

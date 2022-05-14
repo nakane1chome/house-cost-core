@@ -1,10 +1,11 @@
 import { Params } from "./param";
-import { BaseAmount } from "./expense";
+import { Expense } from "./expense";
 
-export class GrantAmount extends BaseAmount {
+export class GrantAmount extends Expense {
 
     constructor(params: Params) {
-        super();
+        super("Government Grants",
+              "Funding provided by the government to aid property purchase.");
         let amount = 0;
         if (params.config.first_home) {
             switch (params.config.state) {
@@ -16,10 +17,10 @@ export class GrantAmount extends BaseAmount {
                     } else {
                         amount = params.config.new_home ? 15000 : 5000;
                     }
-                    this.update(amount)
+                    this.update_upfront(amount)
             }
         } else {
-            this.update(0)
+            this.update_upfront(0)
         }
     }
 }

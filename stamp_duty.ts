@@ -1,14 +1,15 @@
 import { Params } from "./param";
-import { BaseAmount } from "./expense";
+import { Expense } from "./expense";
 
-export class StampDuty extends BaseAmount {
+export class StampDuty extends Expense {
 
     static SA_STAMP_BASE = 11330; // 
     static SA_STAMP_VAR = 5; // pct
     static SA_STAMP_VAR_OFFSET = 300000; // $
 
     constructor(params: Params) {
-        super();
+        super("Stamp Duty",
+             "The one off tax that needs to be paid when the property is purchased.");
         let amount = 0;
         switch (params.config.state) {
             case "SA" :      
@@ -19,7 +20,7 @@ export class StampDuty extends BaseAmount {
                     + ((params.property.value 
                         - StampDuty.SA_STAMP_VAR_OFFSET) 
                         * StampDuty.SA_STAMP_VAR)/100;
-                this.update(amount);
+                this.update_upfront(amount);
         }
     }
 }

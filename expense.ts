@@ -1,85 +1,62 @@
-export class BaseAmount  {
 
-    public is_known = false;
-    public amount = 0;
 
-    protected update(amount: number) : void {
-        this.is_known = true;
-        this.amount = amount; 
+export class Expense  {
+
+    static readonly ONE_YEAR=365.25;
+    static readonly ONE_MONTH=Expense.ONE_YEAR/12.0;
+    static readonly ONE_WEEK=Expense.ONE_YEAR/52.0;
+
+    public is_known = false; // Is the amount known? True - the information to calculate it is known.  False - Unkown.
+    public repeating_amount = 0;
+    public upfront_amount = 0;
+    readonly label: string;
+    readonly desc: string;
+    readonly repeat_period: number;
+    public expenses : Array<[string, Expense]>;
+
+    constructor(label: string, desc: string, repeat_period?: number) {
+        this.expenses = new Array<[string, Expense]>();
+        this.repeat_period = repeat_period ?? 0;
+        this.label = label;
+        this.desc = desc;
     }
-    protected increment(amount: number) : void {
-        if (this.is_known && this.amount) {
-            this.amount += amount;             
-        } else {
-            this.is_known = true;
-            this.amount = amount; 
+
+    protected update_repeating(amount: number) : void {
+        this.is_known = true;
+        this.repeating_amount = amount; 
+    }
+    protected update_upfront(amount: number) : void {
+        this.is_known = true;
+        this.upfront_amount = amount; 
+    }
+
+    // annual expense
+    one_off() : number {return this.upfront_amount;}
+    annual() : number {return this.repeat_period ? Expense.ONE_YEAR*this.repeating_amount/this.repeat_period: 0;}
+    monthly() : number {return this.repeat_period ? Expense.ONE_MONTH*this.repeating_amount/this.repeat_period: 0;}
+    weekly() : number {return this.repeat_period ? Expense.ONE_WEEK*this.repeating_amount/this.repeat_period: 0;}
+
+    add(e: Expense) : void {
+        this.expenses.push(["+",e]);
+        if (e.is_known) {
+            this.upfront_amount += e.upfront_amount;
+            this.repeating_amount += e.repeating_amount * (this.repeat_period/e.repeat_period);
         }
     }
+    sub(e: Expense) : void {
+        this.expenses.push(["-",e]);
+        if (e.is_known) {
+            this.upfront_amount -= e.upfront_amount;
+            this.repeating_amount -= e.repeating_amount * (this.repeat_period/e.repeat_period);
+        }
+    }
+
 } 
 
-export class ExpenseAnnual extends BaseAmount {
-
-    constructor() {
-        super();
+export class UpfrontExpense extends Expense {
+    constructor(label: string, desc: string, upfront_amount: number) {
+        super(label, desc);
+        this.update_upfront(upfront_amount);
     }
-
-    annual() : number {
-        return this.amount;
-    }
-
-    // Return false if the expense will eventually be paid off
-    perpetual() : boolean {return true;}
     
-    // annual expense
-    monthly() : number {return this.annual()/12;}
-    
-    // annual expense
-    weekly() : number {return this.annual()/52;}
-
-}
-
-export class  ExpenseTerm extends BaseAmount {
-
-    private _term_months : number;
-
-    constructor(term_months: number) {
-        super();
-        this._term_months = term_months;
-    }
-
-    term(): number {return this._term_months}
-
-    // total cost the original amount
-    total() : number {return this.amount ;}   
-
-    // Return false if the expense will eventually be paid off
-    perpetual() : boolean {return false;}
-    
-    // annual expense
-    annual() : number {return this.monthly()*12;}
-    
-    // The totel expense amortized over the term
-    monthly() : number {return this.total()/this.term();}
-    
-    // weekly expense
-    weekly() : number {return this.annual()/52;}
-    
-}
-
-export class ExpenseSet extends BaseAmount  {
-
-    public expenses : Array<BaseAmount>;
-
-    constructor() {
-        super();
-        this.expenses = new Array<BaseAmount>();
-    }
-
-    add(e: BaseAmount) : void {
-        this.expenses.push(e);
-        if (e.is_known) {
-            this.increment(e.amount);
-        }
-    }
-
 }

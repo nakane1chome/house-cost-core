@@ -1,11 +1,12 @@
 import { Params } from "./param";
-import { ExpenseTerm } from "./expense";
+import { Expense } from "./expense";
 
-export class  MortgageInterest extends ExpenseTerm {
+export class  MortgageInterest extends Expense {
 
     constructor(params: Params, loan_amount: number) {
         const n = params.config.term*12;
-        super(n)
+        super("Mortgage Interest",
+              "The interest payments required to service the property loan.")
         // from wikipedia
         // P = Li / (1 - e -nln(1+i))
         // L = amount of loan
@@ -16,6 +17,6 @@ export class  MortgageInterest extends ExpenseTerm {
         const payment = (c * i) / (1.0 - Math.exp(-n * Math.log(1.0+i)));
         const total_payment = payment * n;
         const total = total_payment - c;
-        this.update(total);
+        this.update_upfront(total);
     }
 }

@@ -1,10 +1,11 @@
 import { Params } from "./param";
-import { ExpenseTerm } from "./expense";
+import { Expense } from "./expense";
 
-export class MortgagePrinciple extends ExpenseTerm {
+export class MortgagePrinciple extends Expense {
     constructor(params: Params, loan_amount: number) {
-        super(params.config.term*12);
-        this.update(loan_amount);
+        super("Mortgage Principle",
+              "The amount of money that has been borrowed and needs to be repaid.");
+        this.update_upfront(loan_amount);
     }
 }
 

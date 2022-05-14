@@ -1,12 +1,13 @@
 import { Params } from "./param";
-import { BaseAmount } from "./expense";
+import { Expense } from "./expense";
 
 // http://www.sa.gov.au/subject/Housing,+property+and+land/Customer+entry+points+and+contacts/Land+services+industry+entry+point/Fees+and+charges
 // http://www.sa.gov.au/upload/franchise/Housing,%20property%20and%20land/LSG/LSG_transfer_registration_fees_2013_2014.pdf
-export class  TransferReg extends BaseAmount {
+export class  TransferReg extends Expense {
     
     constructor(params: Params) {
-        super()
+        super("Transfer Registration Fee",
+             "The fee paid to tranfer the registration of the property title at purchase.")
         let amount = 0;
         switch (params.config.state) {
             case "SA" :
@@ -20,7 +21,7 @@ export class  TransferReg extends BaseAmount {
                     const rank=params.property.value/10000;
                     amount=252 + (rank-4)*73.5;
                 }
-                this.update(amount)
+                this.update_upfront(amount)
         }
     }
 }

@@ -42,19 +42,23 @@ export class CostOfOwnership {
         this.cost = new Expense("Cost of Ownership",
                                    "The cost refers to all expenses and financing costs " +
                                    "that do not contribute to the equity in the property.");
-        this.cost_finance = new Expense("Cost of Finance",
+        this.cost_finance = new Expense("Finance Cost",
                                            "The cost of finance refers to the cost borrowing money " +
                                            "to purchase and the opportunity cost of not investing " +
-                                           "any upfront equity (deposit) elsewhere.");
-        this.cost_expenses = new Expense("Cost of Ongoing Expenses",
-                                           "The cost of expenses that must be paid for by the property owner.");
+                                           "any upfront equity (deposit) elsewhere.",
+                                       Expense.ONE_YEAR);
+        this.cost_expenses = new Expense("Ongoing Expenses",
+                                           "The cost of expenses that must be paid for by the property owner.",
+                                        Expense.ONE_YEAR);
         this.cash_flow = new Expense("Cash Flow",
-                                        "The cash flow that must be provided to maintain ownership of the property.");
+                                        "The cash flow that must be provided to maintain ownership of the property.",
+                                    Expense.ONE_YEAR);
         this.loan_payments = new Expense("Loan Payments",
                                            "Payments that must be made to maintain the home loan.");
         
-        this.cost_finance.add(this.loan_interest);
-        this.cost_finance.add(this.deposit_income)
+        this.cost_finance.add(this.loan_interest); // Actuall cost
+        this.cost_finance.add(this.deposit_income)  // Oportunity cost
+
         this.cost_expenses.add(this.taxes);
         this.cost_expenses.add(this.water);
         this.cost_expenses.add(this.rates);
@@ -62,9 +66,9 @@ export class CostOfOwnership {
         this.cost.add(this.cost_finance);
         this.cost.add(this.cost_expenses);
 
+        this.cash_flow.add(this.cost_expenses);
         this.cash_flow.add(this.loan_interest);
         this.cash_flow.add(this.loan_principle);
-        this.cash_flow.add(this.cost_expenses);
 
         this.loan_payments.add(this.loan_interest);
         this.loan_payments.add(this.loan_principle);

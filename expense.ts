@@ -16,7 +16,7 @@ export class Expense  {
 
     constructor(label: string, desc: string, repeat_period?: number) {
         this.expenses = new Array<[string, Expense]>();
-        this.repeat_period = repeat_period ?? 0;
+        this.repeat_period = repeat_period ?? Expense.ONE_YEAR;
         this.label = label;
         this.desc = desc;
     }
@@ -39,15 +39,21 @@ export class Expense  {
     add(e: Expense) : void {
         this.expenses.push(["+",e]);
         if (e.is_known) {
+            this.is_known=true;
             this.upfront_amount += e.upfront_amount;
-            this.repeating_amount += e.repeating_amount * (this.repeat_period/e.repeat_period);
+            if (e.repeat_period!=0) {
+                this.repeating_amount += e.repeating_amount * (this.repeat_period/e.repeat_period);
+            }
         }
     }
     sub(e: Expense) : void {
         this.expenses.push(["-",e]);
         if (e.is_known) {
+            this.is_known=true;
             this.upfront_amount -= e.upfront_amount;
-            this.repeating_amount -= e.repeating_amount * (this.repeat_period/e.repeat_period);
+            if (e.repeat_period!=0) {
+                this.repeating_amount -= e.repeating_amount * (this.repeat_period/e.repeat_period);
+            }
         }
     }
 

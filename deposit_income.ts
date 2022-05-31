@@ -13,12 +13,20 @@ export class DepositIncome extends Expense {
             "Could be interest or other returns.",
              Expense.ONE_YEAR)
         const  purchaser_cnt = params.purchasers.length;
+        let enabled_cnt = 0;
         this.savings_interest = new SavingsInterest(params);
         this.add(this.savings_interest);
         for (let i=0; i < purchaser_cnt; i++) {
-            const taxed_amount = new TaxedAmount(params.purchasers[i], 
-                                                 this.savings_interest, purchaser_cnt);
-            this.sub(taxed_amount);
+            if (params.purchasers[i].enable) {
+                enabled_cnt++;
+            }
+        }
+        for (let i=0; i < purchaser_cnt; i++) {
+            if (params.purchasers[i].enable) {
+                const taxed_amount = new TaxedAmount(params.purchasers[i], 
+                                                     this.savings_interest,enabled_cnt);
+                this.sub(taxed_amount);
+            }
         }
     }
 }

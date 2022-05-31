@@ -7,6 +7,7 @@ export class Economy {
     save_rate= 0;
 } 
 export class Purchaser {
+    enable = false;
     income= 0;
 }
 export class Config {

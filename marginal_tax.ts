@@ -1,3 +1,9 @@
+/* Copyright(c) 2014-2023 Phil Mulholland (www.shincbm.com)
+   SPDX-License-Identifier: MIT
+   Housing Cost Model
+*/
+
+
 // https://www.ato.gov.au/rates/individual-income-tax-rates/
 
 // Resident tax rates 2022–23

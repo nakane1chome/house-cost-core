@@ -1,4 +1,10 @@
 #!/bin/env python3
+
+#  Copyright(c) 2014-2023 Phil Mulholland (www.shincbm.com)
+#  SPDX-License-Identifier: MIT
+#  Housing Cost Model
+# 
+
 import csv
 from collections import defaultdict
 

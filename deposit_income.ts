@@ -1,3 +1,8 @@
+/* Copyright(c) 2014-2023 Phil Mulholland (www.shincbm.com)
+   SPDX-License-Identifier: MIT
+   Housing Cost Model
+*/
+
 import { Params } from "./param";
 import { TaxedAmount } from "./taxed_amount";
 import { SavingsInterest } from "./savings_interest";

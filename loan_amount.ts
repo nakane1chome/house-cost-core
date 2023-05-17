@@ -1,3 +1,8 @@
+/* Copyright(c) 2014-2023 Phil Mulholland (www.shincbm.com)
+   SPDX-License-Identifier: MIT
+   Housing Cost Model
+*/
+
 import { Expense,  UpfrontExpense } from "./expense";
 import { Params } from "./param";
 import { GrantAmount } from "./grant_amount";

@@ -5,17 +5,19 @@ export class Property {
 export class Economy {
     loan_rate= 0;
     save_rate= 0;
-} 
+}
 export class Purchaser {
     enable = false;
     income= 0;
 }
 export class Config {
     state= "";
-    term= 0;
+    loan_term= 0;
+    hold_term= 0;
     deposit= 0;
     new_home = false;
     first_home = false;
+    owner_occupier=true;
 }
 export class NewHome {
     build_cost= 0;

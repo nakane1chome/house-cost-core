@@ -21,6 +21,15 @@ export class Expense  {
         this.desc = desc;
     }
 
+    static describe_period(v: number) : string {
+      switch(v) {
+        case Expense.ONE_YEAR: return "year";
+        case Expense.ONE_MONTH: return "month";
+        case Expense.ONE_WEEK: return "week";
+      } 
+     return "??";
+   }
+
     protected update_repeating(amount: number) : void {
         this.is_known = true;
         this.repeating_amount = amount; 

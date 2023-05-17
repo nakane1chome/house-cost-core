@@ -4,11 +4,13 @@ import { Expense } from "./expense";
 
 export class TaxesSaEsLevy extends Expense {
 
-    private static _ESL_BASE = 50.0;
-    private static _ESL_RATE = 0.000260;
+    private static _BASE = 50.0;
+    private static _RATE = 0.000393; // Effecive is 0.001125, Actual is calculated by "prescribed rate"
+    private static _AREA = 1.0; // R4
+    private static _USE = 0.4; // RE
 
     private node_info = new NodeInfo("Emergency Services Levy (SA)",
-                            new Date(2014,1,1),
+                            new Date(2022,9,9),
                             "Assumes Residental Land in Regional Area 4 (Adelaide and suburbs)");
 
     constructor(params: Params) {
@@ -16,9 +18,9 @@ export class TaxesSaEsLevy extends Expense {
              "The Emergency Services Levy (ESL)  paid annually to the state government by property owners.",
              Expense.ONE_YEAR);
         if (params.config.state == "SA") {
-            const value = TaxesSaEsLevy._ESL_BASE + TaxesSaEsLevy._ESL_RATE*params.property.value;
+            const value = TaxesSaEsLevy._BASE + (TaxesSaEsLevy._AREA*TaxesSaEsLevy._USE*TaxesSaEsLevy._RATE*params.property.value);
             this.update_repeating(value);
-            this.node_info.set_link("http://www.revenuesa.sa.gov.au/taxes-and-duties/emergency-services-levy");
+            this.node_info.set_link("https://www.revenuesa.sa.gov.au/esl/calculate-emergency-services-levy/2022-23-esl-calculator");
         }
     }
 }

@@ -36,28 +36,32 @@
 export class TaxBracket {
 
     private static _TAX_BRACKETS = [
-        [18201,0.19],
-        [45001,0.325],
-        [120001,0.37],
-        [180001,0.45]
+        [18201,0],
+        [45001,0.19],
+        [120001,0.325],
+        [180001,0.37],
+        [0, 0.45]
     ];
     private static _MEDICARE_LEVY = 0.02;
 
     /** Return the taxable percentage for a given income */
     static GetPercent( income: number) : number {
-        if (income < TaxBracket._TAX_BRACKETS[0][0])  return 0.0;
-        for (let i=0; i< TaxBracket._TAX_BRACKETS.length-1;i++) {
-            if (income < TaxBracket._TAX_BRACKETS[i+1][0])    return TaxBracket._TAX_BRACKETS[i][1];
+        for (let i=0; i< TaxBracket._TAX_BRACKETS.length;i++) {
+            if (income < TaxBracket._TAX_BRACKETS[i][0]) {
+                return TaxBracket._TAX_BRACKETS[i][1]  + medicare_levy;
+            }
         }
-        return TaxBracket._TAX_BRACKETS[TaxBracket._TAX_BRACKETS.length-1][1]  + TaxBracket._MEDICARE_LEVY;
+        return TaxBracket._TAX_BRACKETS[TaxBracket._TAX_BRACKETS.length-1][1]  + medicare_levy;
     }
     
     /** Return the next bracket boundary, the top income in this  bracket */
     static UpperBound( income: number) : number {
         for (let i=0; i<TaxBracket._TAX_BRACKETS.length;i++) {
-            if (income < TaxBracket._TAX_BRACKETS[i][0])  return TaxBracket._TAX_BRACKETS[i][0]-1;
+            if (income < TaxBracket._TAX_BRACKETS[i][0]) {
+                return TaxBracket._TAX_BRACKETS[i][0]-1;
+            }
         }
-        return Infinity;
+        return income;
     }
 
     /** Return the marginal tax for a given amount on top of a base income */
@@ -68,10 +72,11 @@ export class TaxBracket {
         if (r0==r1) {
             return r0*additional_income;
         } 
-
+        
         const upper_bound = TaxBracket.UpperBound(base_income);
-        const upper_bracket = base_income + additional_income - upper_bound;
-        return (additional_income-upper_bracket)*r0 + TaxBracket.MarginalTax(upper_bound+1, upper_bracket);
+        const income_for_next_bracket = ((base_income + additional_income) - upper_bound) - base_income;
+        const income_in_this_bracket = additional_income - income_for_next_bracket;
+        return income_in_this_bracket*r0 + TaxBracket.MarginalTax(base_income+income_in_this_bracket, income_for_next_bracket);
 
     }
 

@@ -3,6 +3,8 @@
    Housing Cost Model
 */
 
+import {NodeInfo} from './node_info';
+
 export class Expense  {
 
     static readonly ONE_YEAR=365.25;
@@ -16,6 +18,7 @@ export class Expense  {
     readonly desc: string;
     readonly repeat_period: number;
     public expenses : Array<[string, Expense]>;
+    public node_info: NodeInfo | null = null;
 
     constructor(label: string, desc: string, repeat_period?: number) {
         this.expenses = new Array<[string, Expense]>();

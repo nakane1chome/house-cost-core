@@ -14,7 +14,7 @@ export class TaxesSaEsLevy extends Expense {
     private static _AREA = 1.0; // R4
     private static _USE = 0.4; // RE
 
-    private node_info = new NodeInfo("Emergency Services Levy (SA)",
+    public node_info = new NodeInfo("Emergency Services Levy (SA)",
                             new Date(2022,9,9),
                             "Assumes Residental Land in Regional Area 4 (Adelaide and suburbs)");
 
@@ -35,7 +35,7 @@ export class TaxesSaMurrayLevy extends Expense{
 
     private static _MURRAY_LEVY=38.0;
 
-    private node_info = new NodeInfo("River Murray Levy (SA)",
+    public node_info = new NodeInfo("River Murray Levy (SA)",
             new Date(2014,1,1),
             "Catagory 1 Residential");
 
@@ -56,7 +56,7 @@ export class TaxesSaNaturalResourcesLevy extends Expense {
 
     static _NR_LEVY=36.50;
 
-    private node_info = new NodeInfo(" NaturalResources Levy (SA)",new Date(2014,1,1),"Catagory 1 Residential");
+    public node_info = new NodeInfo(" NaturalResources Levy (SA)",new Date(2014,1,1),"Catagory 1 Residential");
 
     constructor(params: Params) {
         super("NaturalResources Levy (SA)",

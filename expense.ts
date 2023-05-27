@@ -1,4 +1,4 @@
-
+import {NodeInfo} from './node_info';
 
 export class Expense  {
 
@@ -13,6 +13,7 @@ export class Expense  {
     readonly desc: string;
     readonly repeat_period: number;
     public expenses : Array<[string, Expense]>;
+    public node_info: NodeInfo | null = null;
 
     constructor(label: string, desc: string, repeat_period?: number) {
         this.expenses = new Array<[string, Expense]>();
@@ -20,6 +21,15 @@ export class Expense  {
         this.label = label;
         this.desc = desc;
     }
+
+    static describe_period(v: number) : string {
+      switch(v) {
+        case Expense.ONE_YEAR: return "year";
+        case Expense.ONE_MONTH: return "month";
+        case Expense.ONE_WEEK: return "week";
+      } 
+     return "??";
+   }
 
     protected update_repeating(amount: number) : void {
         this.is_known = true;

@@ -23,13 +23,14 @@ export class DepositIncome extends Expense {
         this.add(this.savings_interest);
         for (let i=0; i < purchaser_cnt; i++) {
             if (params.purchasers[i].enable) {
-                enabled_cnt++;
+                enabled_cnt = enabled_cnt+1;
             }
         }
         for (let i=0; i < purchaser_cnt; i++) {
             if (params.purchasers[i].enable) {
-                const taxed_amount = new TaxedAmount(params.purchasers[i], 
-                                                     this.savings_interest,enabled_cnt);
+                const taxed_amount = new TaxedAmount(
+                    params.purchasers[i], 
+                    this.savings_interest,enabled_cnt);
                 this.sub(taxed_amount);
             }
         }

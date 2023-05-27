@@ -6,6 +6,7 @@
 export class Property {
     value= 0;
     postcode= 0;
+    community_title=false;
 }
 export class Economy {
     loan_rate= 0;

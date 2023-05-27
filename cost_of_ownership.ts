@@ -1,3 +1,8 @@
+/* Copyright(c) 2014-2023 Phil Mulholland (www.shincbm.com)
+   SPDX-License-Identifier: MIT
+   Housing Cost Model
+*/
+
 import {Params} from "./param";
 import {Expense} from "./expense";
 import {MortgageInterest} from "./mortgage_interest"
@@ -56,7 +61,7 @@ export class CostOfOwnership {
         this.loan_payments = new Expense("Loan Payments",
                                            "Payments that must be made to maintain the home loan.");
         
-        this.cost_finance.add(this.loan_interest); // Actuall cost
+        this.cost_finance.add(this.loan_interest); // Actual cost
         this.cost_finance.add(this.deposit_income)  // Oportunity cost
 
         this.cost_expenses.add(this.taxes);

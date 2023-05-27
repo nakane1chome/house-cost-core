@@ -1,3 +1,8 @@
+/* Copyright(c) 2014-2023 Phil Mulholland (www.shincbm.com)
+   SPDX-License-Identifier: MIT
+   Housing Cost Model
+*/
+
 export const STATE_LIST=[
     {value : "ACT",text : "ACT"},
     {value : "NT", text : "NT"},

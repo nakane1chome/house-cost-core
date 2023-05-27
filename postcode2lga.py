@@ -48,10 +48,8 @@ def main():
             prev_label = label
 
 
-    def print_map(fout, indent, sub_list):
+    def print_map(fout, indent, sub_list, minv, maxv):
         ll = len(sub_list)
-        minv=sub_list[0][0]
-        maxv=sub_list[-1][1]
         if ll == 1:
             label=sub_list[0][2]
             if minv==maxv:
@@ -60,18 +58,19 @@ def main():
                 fout.write (f"{indent}return '{label}';\n")
         else:
             hl = int(ll/2)
-            cutv=sub_list[hl][1]
+            cutv=sub_list[hl][0]
             fout.write(f"{indent}if (/*> {minv}*/ postcode < {cutv})" + "{\n")
-            print_map(fout, indent + "  ",sub_list[:hl])
+            print_map(fout, indent + "  ",sub_list[:hl], minv, cutv)
             fout.write(f"{indent}" + "} else " + f"/* >= {cutv} < {maxv} */" + " {\n")
-            print_map(fout, indent + "  ",sub_list[hl:])
+            print_map(fout, indent + "  ",sub_list[hl:], cutv, maxv)
             fout.write(f"{indent}" +"}\n")
 
     with open(fout_name, "w") as fout:
         fout.write("export function Postcode2Lga(postcode: number) : string {\n")
         for elem in out_list:
             fout.write("// " + str(elem) + "\n" )
-        print_map(fout,"    ", out_list)
+        ll = len(out_list)
+        print_map(fout,"    ", out_list, out_list[0][0],  out_list[-1][1])
         fout.write("    return 'unknown';\n")
         fout.write("}\n")
                    

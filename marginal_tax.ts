@@ -46,6 +46,7 @@ export class TaxBracket {
 
     /** Return the taxable percentage for a given income */
     static GetPercent( income: number) : number {
+        const medicare_levy = income < 23365 ? 0 : TaxBracket._MEDICARE_LEVY;
         for (let i=0; i< TaxBracket._TAX_BRACKETS.length;i++) {
             if (income < TaxBracket._TAX_BRACKETS[i][0]) {
                 return TaxBracket._TAX_BRACKETS[i][1]  + medicare_levy;

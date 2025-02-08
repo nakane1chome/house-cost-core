@@ -46,6 +46,7 @@ export class TaxBracket {
 
     /** Return the taxable percentage for a given income */
     static GetPercent( income: number) : number {
+        console.log("GET PERCENT TAX!",income);
         const medicare_levy = income < 23365 ? 0 : TaxBracket._MEDICARE_LEVY;
         for (let i=0; i< TaxBracket._TAX_BRACKETS.length;i++) {
             if (income < TaxBracket._TAX_BRACKETS[i][0]) {
@@ -71,12 +72,14 @@ export class TaxBracket {
         const r1 = TaxBracket.GetPercent(base_income+additional_income);
 
         if (r0==r1) {
+            console.log("MARGINAL DONE TAX!",r0, additional_income)
             return r0*additional_income;
         } 
         
         const upper_bound = TaxBracket.UpperBound(base_income);
         const income_for_next_bracket = ((base_income + additional_income) - upper_bound) - base_income;
         const income_in_this_bracket = additional_income - income_for_next_bracket;
+        console.log("MARGINAL TAX!",r0,r1, upper_bound, income_in_this_bracket, income_for_next_bracket);
         return income_in_this_bracket*r0 + TaxBracket.MarginalTax(base_income+income_in_this_bracket, income_for_next_bracket);
 
     }

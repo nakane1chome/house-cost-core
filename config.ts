@@ -7,15 +7,18 @@ import { Params, Purchaser } from "./param";
 import { PostcodeToState } from "./aus_state"
 
 export function ConfigLoad(p: Params, postcode?: string):void {
+
     p.property.value = 480000; // https://www.sa.gov.au/topics/planning-and-property/buying-a-home-or-property/researching-a-property/median-house-sales-by-quarter
 
-    p.property.postcode = parseInt(postcode ||  "5000");
+    p.location.country="AUS";
+    p.location.postcode = parseInt(postcode ||  "5000");
+    //p.location.state = PostcodeToState(p.location.country, p.location.postcode);
+    p.location.state = PostcodeToState(p.location.postcode);
 
     p.config.deposit = 96000; // 20%
     p.config.loan_term = 25;
     p.config.hold_term = 25;
     p.config.first_home = false;
-    p.config.state = PostcodeToState(p.property.postcode);
     p.config.new_home = false;
 
     p.new_home.build_cost = 200000;

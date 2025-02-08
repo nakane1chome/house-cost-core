@@ -5,7 +5,6 @@
 
 export class Property {
     value= 0;
-    postcode= 0;
     community_title=false;
 }
 export class Economy {
@@ -16,8 +15,14 @@ export class Purchaser {
     enable = false;
     income= 0;
 }
-export class Config {
+export class Location {
+    country="";
+    postcode= 0;
     state= "";
+    currency="-";
+}
+
+export class Config {
     loan_term= 0;
     hold_term= 0;
     deposit= 0;
@@ -30,6 +35,7 @@ export class NewHome {
     establish_cost= 0;
 }
 export class Params {
+    location = new Location;
     property = new Property;
     config = new Config;
     new_home = new NewHome;

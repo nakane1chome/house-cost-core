@@ -16,7 +16,7 @@ export class StampDuty extends Expense {
         super("Stamp Duty",
              "The one off tax that needs to be paid when the property is purchased.");
         let amount = 0;
-        switch (params.config.state) {
+        switch (params.location.state) {
             case "SA" :      
                 if (params.property.value <= StampDuty.SA_STAMP_VAR_OFFSET) 
                     amount = StampDuty.SA_STAMP_BASE;

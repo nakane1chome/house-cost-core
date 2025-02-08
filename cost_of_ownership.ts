@@ -27,22 +27,19 @@ export class CostOfOwnership {
     public loan_interest : MortgageInterest;
     public loan_principle : MortgagePrinciple;
     public deposit_income : DepositIncome;
+    public currency : string;
 
-    public taxes : Expense;
-    public water : Expense;
-    public rates : CouncilRates;
-    public insurance : PropertyInsurance;
-
+    //public taxes? : Expense;
+    //public water? : Expense;
+    //public rates? : CouncilRates;
+    //public insurance : PropertyInsurance;
     constructor(params: Params, loan_amount: number) {
 
+        this.currency = params.location.currency;
         this.loan_interest = new MortgageInterest(params, loan_amount);
         this.loan_principle = new MortgagePrinciple(params, loan_amount);
         this.deposit_income = new DepositIncome(params);
-        
-        this.taxes = new NewTaxesSa(params);
-        this.water = new NewWaterSa(params);
-        this.rates = new CouncilRates(params);
-        this.insurance = new PropertyInsurance(params);
+
         
         this.cost = new Expense("Cost of Ownership",
                                    "The cost refers to all expenses and financing costs " +
@@ -58,16 +55,24 @@ export class CostOfOwnership {
         this.cash_flow = new Expense("Cash Flow",
                                         "The cash flow that must be provided to maintain ownership of the property.",
                                     Expense.ONE_YEAR);
+
+        if (params.location.country === "AUS") {
+            const taxes = new NewTaxesSa(params);
+            const water = new NewWaterSa(params);
+            const rates = new CouncilRates(params);
+            this.cost_expenses.add(taxes);
+            this.cost_expenses.add(water);
+            this.cost_expenses.add(rates);
+        }
+        const insurance = new PropertyInsurance(params);
+        this.cost_expenses.add(insurance);
+
         this.loan_payments = new Expense("Loan Payments",
                                            "Payments that must be made to maintain the home loan.");
         
         this.cost_finance.add(this.loan_interest); // Actual cost
         this.cost_finance.add(this.deposit_income)  // Oportunity cost
 
-        this.cost_expenses.add(this.taxes);
-        this.cost_expenses.add(this.water);
-        this.cost_expenses.add(this.rates);
-        this.cost_expenses.add(this.insurance);
         this.cost.add(this.cost_finance);
         this.cost.add(this.cost_expenses);
 

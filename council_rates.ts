@@ -12,7 +12,7 @@ export class CouncilRates extends Expense {
         super("Council Rates",
              "Local goverment taxes levied on the property owner.", 
               Expense.ONE_YEAR)
-        const lga = Postcode2Lga(params.property.postcode);
+        const lga = Postcode2Lga(params.location.postcode);
         // e.g. from campbelltown sa
         // https://www.campbelltown.sa.gov.au/council/rates/rates-information
         let NRL = 0;

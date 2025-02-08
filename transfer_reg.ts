@@ -14,7 +14,7 @@ export class  TransferReg extends Expense {
         super("Transfer Registration Fee",
              "The fee paid to tranfer the registration of the property title at purchase.")
         let amount = 0;
-        switch (params.config.state) {
+        switch (params.location.state) {
             case "SA" :
                 if (params.property.value<=5000)
                     amount=148;

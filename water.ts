@@ -19,7 +19,7 @@ export class TaxesSaSewerRates extends Expense {
         super("Sewerage Service (SA)",
              "The Sewerage Service cost that must be paid by the property owner.",
              Expense.ONE_YEAR)
-        if ( params.config.state == "SA" ) {
+        if ( params.location.state == "SA" ) {
             this.update_repeating( _SEWER_MIN);
             this.node_info.set_link("http://www.sawater.com.au/NR/rdonlyres/A84D7160-EF94-4536-A101-35ECE80472A4/0/201213FeesandCharges.pdf");
         }
@@ -35,7 +35,7 @@ export class  TaxesSaWaterRates  extends Expense  {
         super("Water Supply (SA)",
              "The water supply cost that must be paid by the property owner.",
              Expense.ONE_YEAR)
-        if (params.config.state == "SA" ) {
+        if (params.location.state == "SA" ) {
             const amount = _WATER_MIN; 
             this.update_repeating(amount);
             this.node_info.set_link("http://www.sawater.com.au/NR/rdonlyres/A84D7160-EF94-4536-A101-35ECE80472A4/0/201213FeesandCharges.pdf");

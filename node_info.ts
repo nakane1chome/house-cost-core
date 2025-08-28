@@ -14,7 +14,7 @@ export class NodeInfo {
     constructor(name: string, desc: string) {
         this.name = name;
         this.desc = desc;
-        this.link = "";;
+        this.link = "";
     }
 
     have_link(): boolean {return this.link != "";}

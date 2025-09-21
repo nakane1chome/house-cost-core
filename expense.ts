@@ -49,9 +49,9 @@ export class Expense  {
 
     // annual expense
     one_off() : number {return this.upfront_amount;}
-    annual() : number {return this.repeat_period ? Expense.ONE_YEAR*this.repeating_amount/this.repeat_period: 0;}
-    monthly() : number {return this.repeat_period ? Expense.ONE_MONTH*this.repeating_amount/this.repeat_period: 0;}
-    weekly() : number {return this.repeat_period ? Expense.ONE_WEEK*this.repeating_amount/this.repeat_period: 0;}
+    annual() : number {return this.repeat_period ? (Expense.ONE_YEAR*this.repeating_amount)/this.repeat_period: 0;}
+    monthly() : number {return this.repeat_period ? (Expense.ONE_MONTH*this.repeating_amount)/this.repeat_period: 0;}
+    weekly() : number {return this.repeat_period ? (Expense.ONE_WEEK*this.repeating_amount)/this.repeat_period: 0;}
 
     add(e: Expense) : void {
         this.expenses.push(["+",e]);

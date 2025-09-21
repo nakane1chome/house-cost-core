@@ -55,19 +55,33 @@ export class TaxBracket {
 
     /** Return the marginal tax for a given amount on top of a base income */
     static MarginalTax( base_income : number,  additional_income: number) : number {
+        console.log("BASE INCOME!", base_income)
+        console.log("ADDITIONAL INCOME", additional_income)
+        
         const r0 = TaxBracket.GetPercent(base_income);
-        const r1 = TaxBracket.GetPercent(base_income+additional_income);
+        const r1 = TaxBracket.GetPercent(base_income + additional_income);
 
-        if (r0==r1) {
-            console.log("MARGINAL DONE TAX!",r0, additional_income)
+        if (r0 == r1) {
+            console.log("MARGINAL DONE LOWER!",r0, additional_income, r0*additional_income)
             return r0*additional_income;
         } 
         
         const upper_bound = find_upper_bound(base_income, TaxBracket._TAX_BRACKETS);
-        const income_for_next_bracket = ((base_income + additional_income) - upper_bound) - base_income;
-        const income_in_this_bracket = additional_income - income_for_next_bracket;
-        console.log("MARGINAL TAX!",r0,r1, upper_bound, income_in_this_bracket, income_for_next_bracket);
-        return income_in_this_bracket*r0 + TaxBracket.MarginalTax(base_income+income_in_this_bracket, income_for_next_bracket);
+        if ((base_income + additional_income) > upper_bound) {
+            const income_for_next_bracket = ((base_income + additional_income) - upper_bound);
+            const income_in_this_bracket = additional_income - income_for_next_bracket;
+            if (income_in_this_bracket == 0)  {
+                console.log("MARGINAL DONE UPPER!",r1, income_for_next_bracket, r1*income_for_next_bracket)
+                return r1*additional_income;
+            } else {
+                console.log("UPPER BOUND!", upper_bound, "This Bracket", income_in_this_bracket, "Next Bracket", income_for_next_bracket)
+                console.log("MARGINAL TAX!",r0,r1, upper_bound, income_in_this_bracket, income_for_next_bracket);
+                return income_in_this_bracket*r0 + TaxBracket.MarginalTax(base_income+income_in_this_bracket, income_for_next_bracket);
+            }
+        } else {
+            console.log("MARGINAL DONE UPPER!",r1, additional_income, r1*additional_income)
+            return r1*additional_income;
+        }
 
     }
 

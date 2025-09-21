@@ -15,7 +15,7 @@ export class Economy {
 }
 export class Purchaser {
     enable = false;
-    income= 0;
+    income = 0;
 }
 export class Location {
     country="";

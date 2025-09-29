@@ -8,8 +8,7 @@ import {Expense} from "./expense";
 import {MortgageInterest} from "./mortgage_interest"
 import {MortgagePrinciple} from "./mortgage_principle"
 import {DepositIncome} from "./deposit_income"
-import {NewTaxesSa} from "./taxes_sa"
-import {NewWaterSa} from "./water"
+import {NewWater} from "./water"
 import {CouncilRates} from "./council_rates"
 import {PropertyInsurance} from "./property_insurance"
 import {JapanFixedAssetTax} from "./japan_fixed_asset_tax"
@@ -42,7 +41,7 @@ export class CostOfOwnership {
         this.loan_principle = new MortgagePrinciple(params, loan_amount);
         this.deposit_income = new DepositIncome(params);
 
-        this.cost = new Expense("Cost of Ownership",
+        this.cost = new Expense(`Cost of Ownership ${params.location.state}`,
                                    "All expenses and financing costs. This is the equivalent of rent. " +
                                    "(Excludes equity in the property.)");
         this.cost_finance = new Expense("Finance Cost",
@@ -61,8 +60,7 @@ export class CostOfOwnership {
             this.cost_expenses.add(new JapanFixedAssetTax(params));
         }
         if (params.location.country === "AUS") {
-            this.cost_expenses.add(new NewTaxesSa(params));
-            this.cost_expenses.add(new NewWaterSa(params));
+            this.cost_expenses.add(new NewWater(params));
             this.cost_expenses.add(new CouncilRates(params));
         }
         const insurance = new PropertyInsurance(params);

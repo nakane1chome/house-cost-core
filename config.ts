@@ -46,6 +46,19 @@ async function loadRatesData() {
     }
 }
 
+export function ConfigRefresh(p: Params): void {
+
+    p.location.currency=ConfigCurrency(p.location.country)
+    if (p.location.country == "AUS") {
+        p.location.state = PostcodeToState(p.location.postcode);
+    }
+    if (p.location.country == "JPN") {
+        p.location.state = "TOKYO";        
+    }
+    console.log(`config: refresh ${p.location.country} /  ${p.location.currency}  / ${p.location.postcode} / ${p.location.state} `)
+    
+}
+
 export async function ConfigLoad(p: Params, country: string, country_fixed: boolean, postcode?: string): Promise<void> {
 
     const ratesData = await loadRatesData();

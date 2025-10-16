@@ -1,0 +1,68 @@
+name: Update Interest Rates
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  update-rates:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm install cheerio axios @types/node typescript ts-node
+        
+    - name: Run rate update script
+      id: update
+      run: |
+        cd src/model
+        npx ts-node scripts/update-rates.ts
+      continue-on-error: true
+      
+    - name: Check if rates changed
+      id: check-changes
+      run: |
+        if [ ${{ steps.update.outcome }} = 'failure' ] && [ ${{ steps.update.outputs.exit_code }} = '1' ]; then
+          echo "rates_changed=true" >> $GITHUB_OUTPUT
+          echo "Rates have changed"
+        else
+          echo "rates_changed=false" >> $GITHUB_OUTPUT
+          echo "No rate changes"
+        fi
+        
+    - name: Commit and push changes
+      if: steps.check-changes.outputs.rates_changed == 'true'
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: |
+          🤖 Update interest rates - ${{ github.run_id }}
+          
+          - Updated RBA cash rate and derived mortgage rate
+          - Updated Japan Flat35 mortgage rate
+          - Data fetched from official sources
+          
+          🤖 Generated with GitHub Actions
+        file_pattern: 'src/model/rates.json'
+        commit_user_name: 'github-actions[bot]'
+        commit_user_email: '41898282+github-actions[bot]@users.noreply.github.com'
+        
+    - name: Create summary
+      run: |
+        echo "## Interest Rate Update Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: $([ '${{ steps.check-changes.outputs.rates_changed }}' = 'true' ] && echo 'Rates Updated ✅' || echo 'No Changes 📊')" >> $GITHUB_STEP_SUMMARY
+        echo "- **Timestamp**: $(date -u +'%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "- **Run ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Sources**:" >> $GITHUB_STEP_SUMMARY
+        echo "  - RBA Cash Rate: https://www.rba.gov.au/statistics/cash-rate/" >> $GITHUB_STEP_SUMMARY
+        echo "  - Japan Flat35: https://www.simulation.jhf.go.jp/flat35/kinri/index.php/rates/top" >> $GITHUB_STEP_SUMMARY

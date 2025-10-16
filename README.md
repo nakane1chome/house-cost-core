@@ -15,3 +15,20 @@ wget https://www.matthewproctor.com/Content/postcodes/australian_postcodes.csv
 postcodes2lga.py
 
 The output is postcodes2lga.ts
+
+# Testing Interest Rate Updates
+
+Test the rate update script with dry run:
+```bash
+# Backup current rates
+cp rates.json rates.json.backup
+
+# Run the script
+npx ts-node scripts/update-rates.ts
+
+# Check differences
+git diff rates.json
+
+# Restore if needed
+mv rates.json.backup rates.json
+```

@@ -14,10 +14,12 @@ export const STATE_LIST=[
     {value : "TAS",text : "TAS"}
 ];
 
-export function PostcodeToState(postcode: number): string {
+export function PostcodeToState(postcode_raw: string): string {
+    const postcode = parseInt(postcode_raw);
     // http://en.wikipedia.org/wiki/Postcodes_in_Australia#Australia_States_and_territories
     if (postcode < 300)  return "ACT";
-    if (postcode < 1000) return "NT";
+    if (postcode == 872) return "SA";
+    if (postcode < 1001) return "NT";
     if (postcode < 2600) return "NSW";
     if (postcode < 2618) return "ACT";
     if (postcode < 2900) return "NSW";

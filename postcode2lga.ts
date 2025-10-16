@@ -1,4 +1,5 @@
-export function Postcode2Lga(postcode: number) : string {
+export function Postcode2Lga(postcode_raw: string) : string {
+    const postcode = parseInt(postcode_raw);
 // [200, 200, 'act.unincorporated-act']
 // [804, 820, 'nt.darwin']
 // [821, 821, 'nt.east-arnhem']

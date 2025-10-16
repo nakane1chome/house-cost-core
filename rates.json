@@ -1,0 +1,36 @@
+{
+  "lastUpdated": "2025-08-30T14:06:47.274Z",
+  "rates": {
+    "AUS": {
+      "cashRate": 4.35,
+      "mortgageRate": 6.35,
+      "savingsRate": 3.8499999999999996,
+      "source": "RBA",
+      "sourceUrl": "https://www.rba.gov.au/statistics/cash-rate/",
+      "lastChanged": "2024-12-10T14:00:00.000Z",
+      "margin": 2
+    },
+    "JPN": {
+      "cashRate": -0.1,
+      "mortgageRate": 1.87,
+      "savingsRate": 0.1,
+      "source": "BOJ",
+      "sourceUrl": "https://www.simulation.jhf.go.jp/flat35/kinri/index.php/rates/top",
+      "lastChanged": "2025-08-30T14:05:56.214Z",
+      "margin": 2
+    }
+  },
+  "metadata": {
+    "version": "1.0",
+    "fetchMethod": "web-scraping",
+    "nextUpdate": "2025-08-31T14:06:47.275Z",
+    "fallbackRates": {
+      "AUS": {
+        "mortgageRate": 6
+      },
+      "JPN": {
+        "mortgageRate": 1.9
+      }
+    }
+  }
+}

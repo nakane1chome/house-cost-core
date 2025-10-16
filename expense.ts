@@ -18,13 +18,15 @@ export class Expense  {
     readonly desc: string;
     readonly repeat_period: number;
     public expenses : Array<[string, Expense]>;
-    public node_info: NodeInfo | null = null;
+    public node_info: NodeInfo ;
 
     constructor(label: string, desc: string, repeat_period?: number) {
         this.expenses = new Array<[string, Expense]>();
         this.repeat_period = repeat_period ?? Expense.ONE_YEAR;
         this.label = label;
         this.desc = desc;
+        this.node_info = new NodeInfo(label, desc);
+
     }
 
     static describe_period(v: number) : string {
@@ -47,9 +49,9 @@ export class Expense  {
 
     // annual expense
     one_off() : number {return this.upfront_amount;}
-    annual() : number {return this.repeat_period ? Expense.ONE_YEAR*this.repeating_amount/this.repeat_period: 0;}
-    monthly() : number {return this.repeat_period ? Expense.ONE_MONTH*this.repeating_amount/this.repeat_period: 0;}
-    weekly() : number {return this.repeat_period ? Expense.ONE_WEEK*this.repeating_amount/this.repeat_period: 0;}
+    annual() : number {return this.repeat_period ? (Expense.ONE_YEAR*this.repeating_amount)/this.repeat_period: 0;}
+    monthly() : number {return this.repeat_period ? (Expense.ONE_MONTH*this.repeating_amount)/this.repeat_period: 0;}
+    weekly() : number {return this.repeat_period ? (Expense.ONE_WEEK*this.repeating_amount)/this.repeat_period: 0;}
 
     add(e: Expense) : void {
         this.expenses.push(["+",e]);

@@ -23,10 +23,15 @@ export class LoanAmount extends Expense {
 
         const value = new UpfrontExpense("Property Value",
                                          "The amount paid for the property purchased.",
-                                         params.property.value);
+                                         params.property.value,
+                                         params.config.loan_term,
+                                         params.config.hold_term);
+        
         const deposit = new UpfrontExpense("Deposit",
                                            "Loan deposit",
-                                           params.config.deposit);
+                                           params.config.deposit,
+                                           params.config.loan_term,
+                                           params.config.hold_term);
 
         this.add(value)
         this.sub(deposit);
@@ -46,12 +51,17 @@ export class LoanAmount extends Expense {
         if (params.config.new_home) {
 
             const build = new UpfrontExpense("Build Cost",
-                                               "Construction cost to build new house.",
-                                               params.new_home.build_cost);
+                                             "Construction cost to build new house.",
+                                             params.new_home.build_cost,
+                                             params.config.loan_term,
+                                             params.config.hold_term);
 
             const establish = new UpfrontExpense("Establish Cost",
                                                  "Additional costs to establish the house.",
-                                                 params.new_home.establish_cost);
+                                                 params.new_home.establish_cost,
+                                                 params.config.loan_term,
+                                                 params.config.hold_term);
+
 
             this.add(build);
             this.add(establish);

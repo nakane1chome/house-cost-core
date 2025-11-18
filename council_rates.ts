@@ -19,7 +19,7 @@ export class CouncilRates extends Expense {
         let RATES_RATE=0;
         let RATES_MIN=0;
         if (lga == 'sa.campbelltown') {
-            RATES_RATE=0.00253979;
+            RATES_RATE=0.00217122;
             RATES_MIN=1037;
         }
         if (lga == 'sa.salisbury') {

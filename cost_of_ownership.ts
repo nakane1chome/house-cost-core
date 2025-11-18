@@ -5,8 +5,7 @@
 
 import {Params} from "./param";
 import {Expense} from "./expense";
-import {MortgageInterest} from "./mortgage_interest"
-import {MortgagePrinciple} from "./mortgage_principle"
+import {MortgageInterest, MortgagePrinciple} from "./mortgage"
 import {DepositIncome} from "./deposit_income"
 import {NewWater} from "./water"
 import {CouncilRates} from "./council_rates"

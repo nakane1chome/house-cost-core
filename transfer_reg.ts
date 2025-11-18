@@ -26,7 +26,7 @@ export class  TransferReg extends Expense {
                     const rank=params.property.value/10000;
                     amount=252 + (rank-4)*73.5;
                 }
-                this.update_upfront(amount)
+                this.update_upfront(amount, 0)
         }
     }
 }

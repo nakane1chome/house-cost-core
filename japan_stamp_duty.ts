@@ -28,7 +28,7 @@ export class JapanContractStampDuty extends Expense {
         }
         const amount=find_bracket(params.property.value, 
                                   JapanContractStampDuty._DUTY_BRACKETS);
-        this.update_upfront(amount)
+        this.update_upfront(amount, 0)
     }
 }
 
@@ -45,7 +45,7 @@ export class JapanPropertyAcquisitionTax extends Expense {
         }
         const amount=(params.property.land_value * JapanPropertyAcquisitionTax._LAND_RATE + 
             params.property.building_value * JapanPropertyAcquisitionTax._BUILDING_RATE);
-        this.update_upfront(amount)
+        this.update_upfront(amount, 0)
     }
     
 
@@ -63,7 +63,7 @@ export class JapanTitleRegistrationStampDuty extends Expense {
         }
         const amount=(params.property.land_value * JapanTitleRegistrationStampDuty._LAND_RATE + 
             params.property.building_value * JapanTitleRegistrationStampDuty._BUILDING_RATE);
-        this.update_upfront(amount)
+        this.update_upfront(amount, 0)
     }
     
 

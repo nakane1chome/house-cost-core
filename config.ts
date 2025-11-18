@@ -39,8 +39,8 @@ async function loadRatesData() {
         // Fallback rates
         return {
             rates: {
-                AUS: { mortgageRate: 6.0, savingsRate: 3.5 },
-                JPN: { mortgageRate: 1.9, savingsRate: 0.1 }
+                AUS: { mortgageRate: 6.0, savingsRate: 3.5, appreciationRate: 4.0 },
+                JPN: { mortgageRate: 1.9, savingsRate: 0.1, appreciationRate: 2.0 }
             }
         };
     }
@@ -89,6 +89,7 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         // Use cached mortgage rate from rates.json
         p.economy.loan_rate = ratesData.rates.AUS.mortgageRate;
         p.economy.save_rate = ratesData.rates.AUS.savingsRate;
+        p.economy.appreciation_rate = ratesData.rates.AUS.appreciationRate;
     } 
 
 
@@ -112,7 +113,8 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         //p.purchasers[2].income2 = 0;
 
         p.economy.loan_rate = ratesData.rates.JPN.mortgageRate;
-        p.economy.save_rate = ratesData.rates.JPN.savingsRate; 
+        p.economy.save_rate = ratesData.rates.JPN.savingsRate;
+        p.economy.appreciation_rate = ratesData.rates.JPN.appreciationRate; 
     } 
 
 }

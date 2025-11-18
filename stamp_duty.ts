@@ -25,7 +25,7 @@ export class StampDuty extends Expense {
                     + ((params.property.value 
                         - StampDuty.SA_STAMP_VAR_OFFSET) 
                         * StampDuty.SA_STAMP_VAR)/100;
-                this.update_upfront(amount);
+                this.update_upfront(amount, 0);
         }
     }
 }

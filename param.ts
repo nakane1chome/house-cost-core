@@ -12,6 +12,7 @@ export class Property {
 export class Economy {
     loan_rate= 0;
     save_rate= 0;
+    appreciation_rate= 0;
 }
 export class Purchaser {
     enable = false;

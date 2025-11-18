@@ -10,8 +10,8 @@ export class SavingsInterest extends Expense {
 
     constructor(params: Params) {
         super("Savings Interest",
-              "The expected return on investing a sum over a the hold term for a given interest rate. " +
-            "The interest compounds over the holding term. " +
+              "The expected return on investing a sum over the hold term for a given interest rate. " +
+            "The interest compounds over the hold term. " +
             "Only the interest from one year is calculated.");
         // from  http://math.ucsd.edu/~wgarner/math4c/textbook/chapter4/compoundinterest.htm
         // A = P ( 1 + r/n) ^ nt

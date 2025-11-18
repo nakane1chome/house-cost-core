@@ -5,8 +5,8 @@
 
 import {Params} from "./param";
 import {Expense} from "./expense";
-import {MortgageInterest, MortgagePrinciple} from "./mortgage"
-import {DepositIncome} from "./deposit_income"
+import {MortgageInterest, MortgagePrincipal} from "./mortgage"
+import {OpportunityCostOfDownPayment} from "./deposit_income"
 import {NewWater} from "./water"
 import {CouncilRates} from "./council_rates"
 import {PropertyInsurance} from "./property_insurance"
@@ -25,8 +25,8 @@ export class CostOfOwnership {
     public cost_expenses : Expense;
     
     public loan_interest : MortgageInterest;
-    public loan_principle : MortgagePrinciple;
-    public deposit_income : DepositIncome;
+    public loan_principle : MortgagePrincipal;
+    public deposit_income : OpportunityCostOfDownPayment;
     public currency : string;
 
     //public taxes? : Expense;
@@ -37,8 +37,8 @@ export class CostOfOwnership {
 
         this.currency = params.location.currency;
         this.loan_interest = new MortgageInterest(params, loan_amount);
-        this.loan_principle = new MortgagePrinciple(params, loan_amount);
-        this.deposit_income = new DepositIncome(params);
+        this.loan_principle = new MortgagePrincipal(params, loan_amount);
+        this.deposit_income = new OpportunityCostOfDownPayment(params);
 
         this.cost = new Expense(`Cost of Ownership ${params.location.state}`,
                                    "All expenses and financing costs. This is the equivalent of rent. " +

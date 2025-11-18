@@ -29,10 +29,11 @@ export class RetainedEquity extends Expense {
         const initial_equity = property_value - loan_amount;
 
         // Total equity = initial deposit + principal paid
-        const total_equity = initial_equity + principal_paid;
+        const retained_equity = initial_equity + principal_paid;
 
-        // At exit, the equity remains (remainder ratio = 1.0)
-        this.update_upfront(total_equity, 0);
+        // At exit, the equity remains
+        const exit_remainder_amount = property_value - retained_equity;
+        this.update_upfront(property_value, exit_remainder_amount);
     }
 }
 
@@ -46,27 +47,30 @@ export class AssetAppreciation extends Expense {
 
         // Calculate appreciation over hold_term
         const appreciation_rate = params.economy.appreciation_rate / 100.0;
-        const years = params.config.hold_term;
+        const hold_years = params.config.hold_term;
+        const term_years = params.config.loan_term;
 
         // Compound appreciation: final_value = initial_value * (1 + rate)^years
-        const appreciated_value = property_value * Math.pow(1 + appreciation_rate, years);
-        const appreciation_gain = appreciated_value - property_value;
+        const appreciated_value_at_hold = property_value * Math.pow(1 + appreciation_rate, hold_years);
+        const appreciated_value_at_term = property_value * Math.pow(1 + appreciation_rate, term_years);
+        const appreciation_gain_at_hold = appreciated_value_at_hold - property_value;
+        const appreciation_gain_at_term = appreciated_value_at_term - property_value;
 
-        // At exit, the appreciation remains (remainder ratio = 1.0)
-        this.update_upfront(appreciation_gain, 0.0);
+        const exit_remainder_amount = appreciation_gain_at_term - appreciation_gain_at_hold;
+        this.update_upfront(appreciation_gain_at_term, exit_remainder_amount);
     }
 }
 
 /**
- * Calculates total investment return from property ownership
+ * Calculates total equity return from property ownership
  */
-export class InvestmentReturn extends Expense {
+export class EquityReturn extends Expense {
 
     public retained_equity: RetainedEquity;
     public asset_appreciation: AssetAppreciation;
 
     constructor(params: Params, loan_amount: number, property_value: number) {
-        super("Investment Return",
+        super("Equity Return",
               "Total return on investment from property ownership, including equity buildup and asset appreciation.");
 
         this.retained_equity = new RetainedEquity(params, loan_amount, property_value);

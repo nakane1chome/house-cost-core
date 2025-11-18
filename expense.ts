@@ -11,7 +11,7 @@ export class Expense  {
     static readonly ONE_MONTH=Expense.ONE_YEAR/12.0;
     static readonly ONE_WEEK=Expense.ONE_YEAR/52.0;
 
-    public is_known = false; // Is the amount known? True - the information to calculate it is known.  False - Unkown.
+    public is_known = false; // Is the amount known? True - the information to calculate it is known.  False - Unknown.
     public repeating_amount = 0;
     public upfront_amount = 0;
     public exit_remainder_amount = 0;
@@ -43,10 +43,10 @@ export class Expense  {
         this.is_known = true;
         this.repeating_amount = amount; 
     }
-    protected update_upfront(amount: number, remainder_ratio: number) : void {
+    protected update_upfront(amount: number, exit_remainder_amount: number) : void {
         this.is_known = true;
-        this.upfront_amount = amount; 
-        this.exit_remainder_amount = amount * remainder_ratio; 
+        this.upfront_amount = amount;
+        this.exit_remainder_amount = exit_remainder_amount;
     }
 
     // annual expense
@@ -95,9 +95,10 @@ export class Expense  {
 export class UpfrontExpense extends Expense {
     constructor(label: string, desc: string, upfront_amount: number, loan_term: number, hold_term: number) {
         super(label, desc);
-        // TODO - the remainder ratio could be adjusted here to include appreication/depreciation.
+        // TODO - the remainder ratio could be adjusted here to include appreciation/depreciation.
         const remainder_ratio =  (hold_term >= loan_term) ? 0 : ((loan_term - hold_term) / loan_term);
-        this.update_upfront(upfront_amount, remainder_ratio);
+        const exit_remainder_amount = upfront_amount * remainder_ratio;
+        this.update_upfront(upfront_amount, exit_remainder_amount);
     }
     
 }

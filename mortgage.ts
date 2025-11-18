@@ -96,13 +96,13 @@ export class MortgageInterest extends Expense {
             params.config.loan_term,
             params.config.hold_term
         );
-        this.update_upfront(total_amount, remainder_amount/total_amount);
+        this.update_upfront(total_amount, remainder_amount);
     }
 }
 
-export class MortgagePrinciple extends Expense {
+export class MortgagePrincipal extends Expense {
     constructor(params: Params, loan_amount: number) {
-        super("Mortgage Principle",
+        super("Mortgage Principal",
               "The amount of money that has been borrowed and needs to be repaid.");
         // NOTE - this remainder should never include appreciation/deprecation.
         // TODO - should this be calculated based on non linear repayment schedule with interest payed earlier.?
@@ -112,6 +112,6 @@ export class MortgagePrinciple extends Expense {
             params.config.loan_term,
             params.config.hold_term
         );
-        this.update_upfront(loan_amount, remainder_amount / loan_amount);
+        this.update_upfront(loan_amount, remainder_amount);
     }
 }

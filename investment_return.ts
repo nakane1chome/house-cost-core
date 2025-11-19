@@ -9,6 +9,7 @@ import { MortgageInterest } from "./mortgage";
 import { Depreciation } from "./depreciation";
 import { TaxBracket } from "./marginal_tax";
 import { CostOfOwnership } from "./cost_of_ownership";
+import { TaxedAmountWithDeduction, CGTTaxedAmount } from "./taxed_amount";
 
 /**
  * Represents the equity retained in the property
@@ -71,6 +72,7 @@ export class EquityReturn extends Expense {
 
     public retained_equity: RetainedEquity;
     public asset_appreciation: AssetAppreciation;
+    public cgt_tax : Array<CGTTaxedAmount>;
 
     constructor(params: Params, loan_amount: number, property_value: number) {
         super("Equity Return",
@@ -78,11 +80,133 @@ export class EquityReturn extends Expense {
 
         this.retained_equity = new RetainedEquity(params, loan_amount, property_value);
         this.asset_appreciation = new AssetAppreciation(params, property_value);
+        this.cgt_tax = [];
+
+        const purchaser_cnt = params.purchasers.length;
+        let enabled_cnt = 0;
+        for (let i=0; i < purchaser_cnt; i++) {
+            if (params.purchasers[i].enable) {
+                enabled_cnt = enabled_cnt+1;
+            }
+        }
+
 
         this.add(this.retained_equity);
         this.add(this.asset_appreciation);
+
+        let j=0;
+        for (let i=0; i < purchaser_cnt; i++) {
+            if (params.purchasers[i].enable) {
+                this.cgt_tax[j] = new CGTTaxedAmount(params,
+                                                     params.purchasers[i],
+                                                     this.asset_appreciation,
+                                                     enabled_cnt);
+                this.add(this.cgt_tax[j]);
+                j+=1;
+            }
+        }
+
     }
 }
+
+/**
+ * Represents rental income from investment property
+ */
+export class GrossRentalIncome extends Expense {
+    constructor(params: Params) {
+        super("Gross Rental Income",
+              "Income received from renting out the property.", Expense.ONE_WEEK);
+
+        // Only applies to investment properties
+        if (params.config.owner_occupier) {
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
+        const weekly_rent = params.property.rent;
+        this.is_known = true;
+        this.update_repeating(weekly_rent);
+    }
+}
+
+export class FeeOnRentalIncome extends Expense {
+    constructor(params: Params) {
+        super("Rental Management Fees",
+              "Fees related to renting out the property.", Expense.ONE_WEEK);
+
+        // Only applies to investment properties
+        if (params.config.owner_occupier) {
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
+        const weekly_fee = params.property.rent * params.property.rent_fee_ratio;
+        this.is_known = true;
+        this.update_repeating(weekly_fee);
+    }
+}
+
+export class TaxOnRentalIncome extends Expense {
+    constructor(params: Params, gross_income: Expense, fees: Expense) {
+        super("Rental Income Tax",
+              "Tax on rental income from property.", Expense.ONE_YEAR);
+
+        // Only applies to investment properties
+        if (params.config.owner_occupier) {
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
+        const purchaser_cnt = params.purchasers.length;
+        let enabled_cnt = 0;
+        for (let i=0; i < purchaser_cnt; i++) {
+            if (params.purchasers[i].enable) {
+                enabled_cnt = enabled_cnt+1;
+            }
+        }
+        for (let i=0; i < purchaser_cnt; i++) {
+            if (params.purchasers[i].enable) {
+                const taxed_amount = new TaxedAmountWithDeduction(
+                    params.purchasers[i], 
+                    gross_income, fees,enabled_cnt);
+                this.add(taxed_amount);
+            }
+        }
+    }
+}
+
+export class NetRentalIncome extends Expense {
+
+    public rental_income: GrossRentalIncome;
+    public rental_fee: FeeOnRentalIncome;
+    public rental_tax: TaxOnRentalIncome;
+
+    constructor(params: Params) {
+        super("Net Rental Income",
+              "Income received from renting out the property, minus expenses and tax.", Expense.ONE_WEEK);
+
+        // Initialize properties first
+        this.rental_income = new GrossRentalIncome(params);
+        this.rental_fee = new FeeOnRentalIncome(params);
+        this.rental_tax = new TaxOnRentalIncome(params, this.rental_income, this.rental_fee);
+
+        // Only applies to investment properties
+        if (params.config.owner_occupier) {
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
+        this.add(this.rental_income);
+        this.sub(this.rental_fee);
+        this.sub(this.rental_tax);
+
+    }
+}
+
 
 /**
  * Aggregates all tax-deductible expenses for investment properties
@@ -174,26 +298,31 @@ export class TaxBenefit extends Expense {
 /**
  * Complete investment return calculation including:
  * 1. Equity Return (capital gains)
- * 2. Tax Deductible Expenses (for reference)
- * 3. Tax Deduction Benefit (actual tax savings)
+ * 2. Rental Income
+ * 3. Tax Deductible Expenses (for reference)
+ * 4. Tax Deduction Benefit (actual tax savings)
  */
 export class InvestmentReturn extends Expense {
 
     public equity_return: EquityReturn;
+    public rental_income: NetRentalIncome;
     public tax_deductible_expenses: TaxDeductibleExpenses;
     public tax_benefit: TaxBenefit;
 
     constructor(params: Params, loan_amount: number, property_value: number,
                 ownership_cost: CostOfOwnership) {
         super("Investment Return",
-              "Total return from property investment including equity gains and tax benefits.");
+              "Total return from property investment including equity gains, rental income, and tax benefits.");
 
+        this.rental_income = new NetRentalIncome(params);
         this.equity_return = new EquityReturn(params, loan_amount, property_value);
         this.tax_deductible_expenses = new TaxDeductibleExpenses(params, ownership_cost);
         this.tax_benefit = new TaxBenefit(params, this.tax_deductible_expenses);
 
-        this.add(this.equity_return);
+        this.add(this.rental_income);
         this.sub(this.tax_deductible_expenses);
         this.add(this.tax_benefit);
+        this.add(this.equity_return);
+
     }
 }

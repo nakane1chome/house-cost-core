@@ -7,6 +7,9 @@ export class Property {
     value= 0;
     land_value= 0;
     building_value= 0;
+    rent= 0;    
+    max_rent=0;
+    rent_fee_ratio = 0;    
     community_title=false;
 }
 export class Economy {

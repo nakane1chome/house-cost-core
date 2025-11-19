@@ -69,6 +69,9 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
 
     if (country == "AUS") {
         p.property.value =  480000; // https://www.sa.gov.au/topics/planning-and-property/buying-a-home-or-property/researching-a-property/median-house-sales-by-quarter
+        p.property.rent = (p.property.value * 0.05 / 52);
+        p.property.max_rent = 5000;
+        p.property.rent_fee_ratio = 0.1;
         p.location.postcode =postcode || "5000";
         //p.location.state = PostcodeToState(p.location.country, p.location.postcode);
         p.location.state = PostcodeToState(p.location.postcode);

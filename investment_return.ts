@@ -6,6 +6,9 @@
 import { Params } from "./param";
 import { Expense } from "./expense";
 import { MortgageInterest } from "./mortgage";
+import { Depreciation } from "./depreciation";
+import { TaxBracket } from "./marginal_tax";
+import { CostOfOwnership } from "./cost_of_ownership";
 
 /**
  * Represents the equity retained in the property
@@ -78,5 +81,119 @@ export class EquityReturn extends Expense {
 
         this.add(this.retained_equity);
         this.add(this.asset_appreciation);
+    }
+}
+
+/**
+ * Aggregates all tax-deductible expenses for investment properties
+ */
+export class TaxDeductibleExpenses extends Expense {
+
+    public depreciation: Depreciation;
+    public finance_cost: Expense;
+    public ongoing_expenses: Expense;
+
+    constructor(params: Params, ownership_cost: CostOfOwnership) {
+        super("Tax Deductible Expenses",
+              "All expenses that are tax-deductible for investment properties (not owner-occupied).", Expense.ONE_YEAR);
+
+        this.depreciation = new Depreciation(params);
+        this.finance_cost = ownership_cost.loan_interest;
+        this.ongoing_expenses = ownership_cost.cost_expenses;
+
+        // Only add these as deductible if it's an investment property
+        if (!params.config.owner_occupier) {
+            this.add(this.depreciation);
+            this.add(this.finance_cost);
+            this.add(this.ongoing_expenses);
+        } else {
+            this.add(this.finance_cost);
+            this.add(this.ongoing_expenses);
+            this.is_known = true;
+        }
+    }
+}
+
+/**
+ * Calculates the tax benefit from deductible expenses
+ */
+export class TaxBenefit extends Expense {
+
+    constructor(params: Params, tax_deductible_expenses: TaxDeductibleExpenses) {
+        super("Tax Deduction Benefit",
+              "Tax savings from deductible investment property expenses at your marginal tax rate.", Expense.ONE_YEAR);
+
+        // Only calculate if there are purchasers with income and it's not owner-occupied
+        if (params.config.owner_occupier || params.purchasers.length === 0) {
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
+        // Calculate total income from all purchasers
+        let total_purchasers = 0;
+        for (const purchaser of params.purchasers) {
+            if (purchaser.enable) {
+                total_purchasers += 1;
+            }
+        }
+
+        if (total_purchasers === 0) {
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
+        // Only applies to Australian tax system for now
+        // Japan has different tax treatment which could be added later
+        if (params.location.country === "AUS") {
+
+            // TODO - this is ammorized over the hold period. Realistically interest decreases over each year.
+            const per_owner = tax_deductible_expenses.periodic(params.config.hold_term, Expense.ONE_YEAR) / total_purchasers;
+
+            // Calculate marginal tax on the deductions
+            // Negative because it's a benefit (reduces tax)
+            let tax_savings = 0;
+
+            for (const purchaser of params.purchasers) {
+                if (purchaser.enable) {
+                    tax_savings += TaxBracket.MarginalTax(purchaser.income, per_owner);
+                }
+            }
+            // Tax benefit is the amount saved, so it's a negative expense (income)
+            this.is_known = true;
+            this.update_repeating(tax_savings);
+        } else {
+            // For other countries, no tax benefit calculation yet
+            this.is_known = true;
+            this.update_repeating(0);
+        }
+    }
+}
+
+/**
+ * Complete investment return calculation including:
+ * 1. Equity Return (capital gains)
+ * 2. Tax Deductible Expenses (for reference)
+ * 3. Tax Deduction Benefit (actual tax savings)
+ */
+export class InvestmentReturn extends Expense {
+
+    public equity_return: EquityReturn;
+    public tax_deductible_expenses: TaxDeductibleExpenses;
+    public tax_benefit: TaxBenefit;
+
+    constructor(params: Params, loan_amount: number, property_value: number,
+                ownership_cost: CostOfOwnership) {
+        super("Investment Return",
+              "Total return from property investment including equity gains and tax benefits.");
+
+        this.equity_return = new EquityReturn(params, loan_amount, property_value);
+        this.tax_deductible_expenses = new TaxDeductibleExpenses(params, ownership_cost);
+        this.tax_benefit = new TaxBenefit(params, this.tax_deductible_expenses);
+
+        this.add(this.equity_return);
+        this.sub(this.tax_deductible_expenses);
+        this.add(this.tax_benefit);
     }
 }

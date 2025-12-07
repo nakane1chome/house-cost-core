@@ -67,6 +67,10 @@ export class Expense  {
     }
     
 
+    link(e: Expense) : void {
+        this.expenses.push(["~",e]);
+    }
+
     add(e: Expense) : void {
         this.expenses.push(["+",e]);
         if (e.is_known) {

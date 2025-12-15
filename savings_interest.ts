@@ -9,10 +9,10 @@ import { Expense } from "./expense";
 export class SavingsInterest extends Expense {
 
     constructor(params: Params) {
-        super("Savings Interest",
+        super("Downpayment (Deposit) Sacificed Interest",
               "The expected return on investing a sum over the hold term for a given interest rate. " +
             "The interest compounds over the hold term. " +
-            "Only the interest from one year is calculated.");
+            "Only the interest from one year is calculated.", Expense.ONE_YEAR);
         // from  http://math.ucsd.edu/~wgarner/math4c/textbook/chapter4/compoundinterest.htm
         // A = P ( 1 + r/n) ^ nt
         // P = Princliple
@@ -25,7 +25,7 @@ export class SavingsInterest extends Expense {
         const P = params.config.deposit;
         const A = P * Math.pow((1 + r/n) , n*t) ;
         const amount = A - P;
-
-        this.update_upfront(amount, 0);
+        this.update_repeating(amount/t);
+        //this.update_upfront(amount, 0);
     }
 }

@@ -9,14 +9,15 @@ import { TaxBracket } from "./marginal_tax";
 
 export class TaxedAmount extends Expense {
 
-    constructor(purchaser: Purchaser, 
+    constructor(reason: string,
+                purchaser: Purchaser, 
                 deposit_interest: Expense, 
                 split: number) {
-        super("Tax on Income",
-              "The tax that would have been paid on interest or other returns made on the deposit, " +
+        const my_amount = deposit_interest.annual() / split;
+        super(`Tax on ${reason}`,
+              `The tax that would have been paid on interest (${my_amount}) or other returns made on the deposit, ` +
             "if it had not been used as equity for the property purchase.", 
              Expense.ONE_YEAR);
-        const my_amount = deposit_interest.annual() / split;
         const amount = TaxBracket.MarginalTax(purchaser.income, my_amount);
         this.update_repeating(amount);
     }

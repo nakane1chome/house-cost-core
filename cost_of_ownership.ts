@@ -8,6 +8,7 @@ import {Expense} from "./expense";
 import {MortgageInterest, MortgagePrincipal} from "./mortgage"
 import {OpportunityCostOfDownPayment} from "./deposit_income"
 import {NewWater} from "./water"
+import {LoanAmount} from "./loan_amount"
 import {CouncilRates} from "./council_rates"
 import {PropertyInsurance} from "./property_insurance"
 import {JapanFixedAssetTax} from "./japan_fixed_asset_tax"
@@ -33,17 +34,17 @@ export class CostOfOwnership {
     //public water? : Expense;
     //public rates? : CouncilRates;
     //public insurance : PropertyInsurance;
-    constructor(params: Params, loan_amount: number) {
+    constructor(params: Params, loan_amount: LoanAmount) {
 
         this.currency = params.location.currency;
         this.loan_interest = new MortgageInterest(params, loan_amount);
         this.loan_principle = new MortgagePrincipal(params, loan_amount);
         this.deposit_income = new OpportunityCostOfDownPayment(params);
 
-        this.cost = new Expense(`Cost of Ownership ${params.location.state}`,
+        this.cost = new Expense(`Cost of Ownership`,
                                    "All expenses and financing costs. This is the equivalent of rent. " +
                                    "(Excludes equity in the property.)");
-        this.cost_finance = new Expense("Finance Cost",
+        this.cost_finance = new Expense("Cost of Finance",
                                            "The cost borrowing money " +
                                            "to purchase and the opportunity cost of not investing " +
                                            "the equity elsewhere.",
@@ -51,7 +52,7 @@ export class CostOfOwnership {
         this.cost_expenses = new Expense("Ongoing Expenses",
                                            "Costs that must be paid for by the property owner.",
                                         Expense.ONE_YEAR);
-        this.cash_flow = new Expense("Cash Flow",
+        this.cash_flow = new Expense("Cash Outflow",
                                      "Sum of all payments needed to maintain ownership of the property.",
                                     Expense.ONE_YEAR);
 

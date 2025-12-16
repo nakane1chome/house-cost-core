@@ -4,8 +4,8 @@
 */
 
 import { Params } from "./param";
-import { Expense } from "./expense";
 import {LoanAmount} from "./loan_amount"
+import { Expense,  UpfrontExpense } from "./expense";
 
 export class MortgageInterest extends Expense {
 
@@ -102,7 +102,26 @@ export class MortgageInterest extends Expense {
     }
 }
 
-export class MortgagePrincipalAtEndOfHoldTerm extends Expense {
+
+export class MortgageEquityAtEndOfHoldTerm extends Expense {
+    constructor(params: Params, loan_amount: LoanAmount) {
+        const remainder_amount = loan_amount.upfront_amount - MortgageInterest.calculateRemainingPrincipal(
+            loan_amount.upfront_amount,
+            params.economy.loan_rate,
+            params.config.loan_term,
+            params.config.hold_term
+        );
+        super(`Mortgage Paid Principal Amount at ${params.config.hold_term} years`,
+              `The principal payed off at ${params.config.hold_term} years out of ${params.config.loan_term} years.`);
+
+        const remainder_ratio =  (params.config.hold_term >= params.config.loan_term) ? 0 : ((params.config.loan_term - params.config.hold_term) / params.config.loan_term);
+        const exit_remainder_amount = remainder_amount * remainder_ratio;
+
+        this.update_upfront(remainder_amount, exit_remainder_amount);
+    }
+}
+
+export class MortgagePayoffAtEndOfHoldTerm extends Expense {
     constructor(params: Params, loan_amount: LoanAmount) {
         const remainder_amount = MortgageInterest.calculateRemainingPrincipal(
             loan_amount.upfront_amount,
@@ -120,13 +139,28 @@ export class MortgagePrincipalAtEndOfHoldTerm extends Expense {
     }
 }
 
+export class EquityInPropertyAtTerm extends Expense {
+    constructor( equity: MortgageEquityAtEndOfHoldTerm, deposit: UpfrontExpense) {
+        super("Equity Retained at end of Holding Term",
+              "After paying down the Mortgage, how much is retained.");
+        this.add(equity);
+        this.add(deposit);
+    }
+}
+
 export class MortgagePrincipal extends Expense {
     constructor(params: Params, loan_amount: LoanAmount) {
         super("Mortgage Principal",
               "The amount of money that has been borrowed and needs to be repaid.");
         // NOTE - this remainder should never include appreciation/deprecation.
         // TODO - should this be calculated based on non linear repayment schedule with interest payed earlier.?
-        this.add(loan_amount);
-        this.sub(new MortgagePrincipalAtEndOfHoldTerm(params, loan_amount));
+        const equity = new MortgageEquityAtEndOfHoldTerm(params, loan_amount);
+        const principal = new MortgagePayoffAtEndOfHoldTerm(params, loan_amount);
+        
+        this.add(equity);
+        this.add(principal);
+        this.link(new EquityInPropertyAtTerm(equity, loan_amount.deposit));
+            
     }
 }
+

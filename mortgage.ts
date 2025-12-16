@@ -140,11 +140,12 @@ export class MortgagePayoffAtEndOfHoldTerm extends Expense {
 }
 
 export class EquityInPropertyAtTerm extends Expense {
-    constructor( equity: MortgageEquityAtEndOfHoldTerm, deposit: UpfrontExpense) {
+    constructor( equity: MortgageEquityAtEndOfHoldTerm, loan_amount: LoanAmount) {
         super("Equity Retained at end of Holding Term",
               "After paying down the Mortgage, how much is retained.");
         this.add(equity);
-        this.add(deposit);
+        this.add(loan_amount.deposit);
+        this.sub(loan_amount.transaction_costs);
     }
 }
 
@@ -159,7 +160,7 @@ export class MortgagePrincipal extends Expense {
         
         this.add(equity);
         this.add(principal);
-        this.link(new EquityInPropertyAtTerm(equity, loan_amount.deposit));
+        this.link(new EquityInPropertyAtTerm(equity, loan_amount));
             
     }
 }

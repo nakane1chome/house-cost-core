@@ -73,6 +73,56 @@ export class InitialEquity extends Expense {
     }
 }
 
+export class CGTax extends Expense {
+
+    public cgt_tax : Array<CGTTaxedAmount>;
+    
+    constructor(params: Params, 
+                asset_appreciation: AssetAppreciation,
+                depreciation?: Expense) {
+
+        super("Capital Gains Tax",
+              "Capital Gains tax at sale.")
+        this.cgt_tax = [];
+
+        const purchaser_cnt = params.purchasers.length;
+        let enabled_cnt = 0;
+        for (let i=0; i < purchaser_cnt; i++) {
+            if (params.purchasers[i].enable) {
+                enabled_cnt = enabled_cnt+1;
+            }
+        }
+
+        if (!params.config.owner_occupier) {
+            let j=0;
+            for (let i=0; i < purchaser_cnt; i++) {
+                if (params.purchasers[i].enable) {
+                    this.cgt_tax[j] = new CGTTaxedAmount(params,
+                                                         `Appreciation, purchaser ${i}`,
+                                                         params.purchasers[i],
+                                                         asset_appreciation,
+                                                         enabled_cnt);
+                    this.add(this.cgt_tax[j]);
+                    j+=1;
+                    if (depreciation != undefined) {
+                        this.cgt_tax[j] = new CGTTaxedAmount(params,
+                                                             `Depreciation, purchaser ${i}`,
+                                                             params.purchasers[i],
+                                                             depreciation,
+                                                             enabled_cnt);
+                        this.add(this.cgt_tax[j]);
+                    }
+                }
+            }
+        }
+
+        if (depreciation != undefined) {
+            this.link(depreciation);
+        }
+
+    }
+}
+
 /**
  * Calculates total equity return from property ownership
  */
@@ -80,9 +130,9 @@ export class EquityReturn extends Expense {
 
     public retained_equity: RetainedEquity;
     public asset_appreciation: AssetAppreciation;
-    public cgt_tax : Array<CGTTaxedAmount>;
     public initial_equity: InitialEquity;
     public feed_equity?: FeedEquity;
+    public cg_tax: CGTax;
 
     constructor(params: Params, 
                 loan_amount: number, 
@@ -105,48 +155,26 @@ export class EquityReturn extends Expense {
         this.retained_equity = new RetainedEquity(params, loan_amount, property_value);
         this.asset_appreciation = new AssetAppreciation(params, property_value);
         this.initial_equity = new InitialEquity(params);
-        this.cgt_tax = [];
-
-        const purchaser_cnt = params.purchasers.length;
-        let enabled_cnt = 0;
-        for (let i=0; i < purchaser_cnt; i++) {
-            if (params.purchasers[i].enable) {
-                enabled_cnt = enabled_cnt+1;
-            }
-        }
+        this.cg_tax = new CGTax(params, this.asset_appreciation, depreciation);
 
 
         this.add(this.retained_equity);
         this.add(this.asset_appreciation);
-        if (depreciation != undefined) {
-            this.link(depreciation);
-        }
 
-        if (!params.config.owner_occupier) {
-            let j=0;
-            for (let i=0; i < purchaser_cnt; i++) {
-                if (params.purchasers[i].enable) {
-                    this.cgt_tax[j] = new CGTTaxedAmount(params,
-                                                         `Appreciation, purchaser ${i}`,
-                                                         params.purchasers[i],
-                                                         this.asset_appreciation,
-                                                         enabled_cnt);
-                    this.sub(this.cgt_tax[j]);
-                    j+=1;
-                    if (depreciation != undefined) {
-                        this.cgt_tax[j] = new CGTTaxedAmount(params,
-                                                             `Depreciation, purchaser ${i}`,
-                                                             params.purchasers[i],
-                                                             depreciation,
-                                                             enabled_cnt);
-                        this.sub(this.cgt_tax[j]);
-                    }
-                }
-            }
-        }
+        this.sub(this.cg_tax);
+
         this.sub(this.initial_equity);
         if ((ownership_cost != undefined) && (investment_income_to_pay_principal != undefined) ) {
-            this.feed_equity = new FeedEquity(params, ownership_cost.loan_principle, investment_income_to_pay_principal);
+            // FeedEquity calculates cash shortfall: (interest + principal + expenses) - rental_income
+            // Note: investment_income_to_pay_principal is NetInvestmentIncome which has rental_income as a component
+            const net_investment_income = investment_income_to_pay_principal as unknown as NetInvestmentIncome;
+            this.feed_equity = new FeedEquity(
+                params,
+                net_investment_income.rental_income,
+                ownership_cost.loan_interest,
+                ownership_cost.loan_principle,
+                ownership_cost.cost_expenses
+            );
             this.sub(this.feed_equity);
         }
 
@@ -313,7 +341,11 @@ export class TaxBenefit extends Expense {
         // Japan has different tax treatment which could be added later
         if (params.location.country === "AUS") {
 
-            // TODO - this is ammorized over the hold period. Realistically interest decreases over each year.
+            // Tax benefit calculation uses the average deduction over the hold period as a compromise.
+            // In reality, deductible interest decreases each year as principal is paid down,
+            // and tax rates may also change over time, making year-by-year calculation complex.
+            // Using the average captures the overall tax benefit while avoiding the compounding
+            // error of applying only the first year's amount to all years.
             const per_owner =  total_claim / total_purchasers;
 
             // Calculate marginal tax on the deductions
@@ -322,7 +354,8 @@ export class TaxBenefit extends Expense {
 
             for (const purchaser of params.purchasers) {
                 if (purchaser.enable) {
-                    tax_savings += TaxBracket.MarginalTax(purchaser.income, per_owner);
+                    const tax_result = TaxBracket.MarginalTax(purchaser.income, per_owner);
+                    tax_savings += tax_result.amount;
                 }
             }
             // Tax benefit is the amount saved, so it's a negative expense (income)
@@ -338,38 +371,68 @@ export class TaxBenefit extends Expense {
 
 export class FeedEquity extends Expense {
 
-    constructor(params: Params, mortgage_principal: Expense, gross_investment_income: Expense) {
-        const gross_income_amount = gross_investment_income.periodic(params.config.hold_term, Expense.ONE_YEAR);
-        const principal_repayment_amount = mortgage_principal.periodic(params.config.hold_term, Expense.ONE_YEAR);
+    constructor(params: Params,
+                rental_income: NetRentalIncome,
+                loan_interest: Expense,
+                loan_principal: Expense,
+                ongoing_expenses: Expense) {
+
+        // Calculate actual cash flows
+        const rental_cash_in = rental_income.annual();
+        const interest_out = loan_interest.annual();
+        const principal_out = loan_principal.annual();
+        const expenses_out = ongoing_expenses.annual();
+        const total_cash_out = interest_out + principal_out + expenses_out;
+        const cash_shortfall = total_cash_out - rental_cash_in;
+
         super("Feed Equity",
-              `When negative gearing, additional equity must be invested to maintain principal . ${gross_income_amount} < ${principal_repayment_amount}`, 
+              `Additional cash required when rental income (${rental_cash_in.toFixed(0)}) cannot cover ` +
+              `interest (${interest_out.toFixed(0)}) + principal (${principal_out.toFixed(0)}) + expenses (${expenses_out.toFixed(0)}). ` +
+              `Shortfall: ${cash_shortfall.toFixed(0)}`,
               Expense.ONE_YEAR);
 
-        // TODO - only needed if negative.
-        
-        //this.add(mortgage_principal);
-
-        // Only calculate if there are purchasers with income and it's not owner-occupied
+        // Only calculate for investment properties
         if (params.config.owner_occupier) {
             this.is_known = true;
             this.update_repeating(0);
             return;
         }
 
-        
-        if (gross_income_amount < principal_repayment_amount)  {
-            // The investment income allows for paying the loan interest (as a tax deductable expense).
-            // To keep the loan terms the principal payment will need to be made from the investment income, or 
-            const remaining_principal_repayment = principal_repayment_amount - gross_income_amount;
-            const feed_equity_amount = gross_income_amount > 0 ? remaining_principal_repayment : principal_repayment_amount ;
-            this.update_repeating(feed_equity_amount);
+        // If rental income cannot cover total cash outflow, owner must feed the difference
+        // Note: Interest payments are a loss (tax deductible), but principal payments build equity
+        if (cash_shortfall > 0) {
+            this.update_repeating(cash_shortfall);
 
-            this.link(mortgage_principal)
-            this.link(gross_investment_income)
-
+            // Link the components for visibility in breakdown
+            this.link(rental_income);
+            this.link(loan_interest);
+            this.link(loan_principal);
+            this.link(ongoing_expenses);
         } else {
+            // Positive cash flow - no feeding required
             this.update_repeating(0);
         }
+    }
+}
+
+export class GrossTaxBenefits extends Expense {
+
+    public tax_benefit_from_expenses: TaxBenefit;
+    public tax_benefit_from_depreciation: TaxBenefit;
+
+    constructor(params: Params, 
+                tax_deductible_expenses: Expense,
+                depreciation: Expense) {
+
+        super("Gross Tax Benefits",
+              "Reduction in tax due to various expenses.");
+
+        this.tax_benefit_from_expenses = new TaxBenefit(params, "Expenses", tax_deductible_expenses);
+        this.tax_benefit_from_depreciation = new TaxBenefit(params, "Depreciation",  depreciation);
+
+        this.add(this.tax_benefit_from_expenses);
+        this.add(this.tax_benefit_from_depreciation);
+        this.link(depreciation);
         
     }
 }
@@ -378,8 +441,7 @@ export class NetInvestmentIncome extends Expense {
 
     public rental_income: NetRentalIncome;
     public tax_deductible_expenses: TaxDeductibleExpenses;
-    public tax_benefit_from_expenses: TaxBenefit;
-    public tax_benefit_from_depreciation: TaxBenefit;
+    public tax_benefits : GrossTaxBenefits;
 
     constructor(params: Params, loan_amount: number, 
                 ownership_cost: CostOfOwnership, depreciation: Expense) {
@@ -388,14 +450,11 @@ export class NetInvestmentIncome extends Expense {
 
         this.rental_income = new NetRentalIncome(params);
         this.tax_deductible_expenses = new TaxDeductibleExpenses(params, ownership_cost);
-        this.tax_benefit_from_expenses = new TaxBenefit(params, "Expenses", this.tax_deductible_expenses);
-        this.tax_benefit_from_depreciation = new TaxBenefit(params, "Depreciation",  depreciation);
+        this.tax_benefits = new GrossTaxBenefits(params, this.tax_deductible_expenses, depreciation);
 
-        this.add(this.rental_income)
-        this.sub(this.tax_deductible_expenses)
-        this.add(this.tax_benefit_from_expenses)
-        this.link(depreciation)
-        this.add(this.tax_benefit_from_depreciation)
+        this.add(this.rental_income);
+        this.sub(this.tax_deductible_expenses);
+        this.add(this.tax_benefits);
 
     }
 
@@ -421,11 +480,11 @@ export class InvestmentReturn extends Expense {
         super("Investment Return",
               "Total return from property investment including equity gains, rental income, and tax benefits.");
 
-        // NOTE - this needs to be changed to remove depeciation from sum.
-        // NOTE - deprication needs to be used only as tax benefit.
+        // NOTE - this needs to be changed to remove depreciation from sum.
+        // NOTE - depreciation needs to be used only as tax benefit.
 
 
-        // Deprication needs to be used to change the CGT calcuation.
+        // Depreciation needs to be used to change the CGT calculation.
         this.depreciation = new Depreciation(params);
         this.investment_income = new NetInvestmentIncome(params, loan_amount, ownership_cost, this.depreciation);
         this.equity_return = new EquityReturn(params, loan_amount, property_value, ownership_cost, this.depreciation, this.investment_income);

@@ -9,13 +9,13 @@ import { Expense } from "./expense";
 export class SavingsInterest extends Expense {
 
     constructor(params: Params) {
-        super("Downpayment (Deposit) Sacificed Interest",
+        super("Downpayment (Deposit) Sacrificed Interest",
               "The expected return on investing a sum over the hold term for a given interest rate. " +
             "The interest compounds over the hold term. " +
             "Only the interest from one year is calculated.", Expense.ONE_YEAR);
         // from  http://math.ucsd.edu/~wgarner/math4c/textbook/chapter4/compoundinterest.htm
         // A = P ( 1 + r/n) ^ nt
-        // P = Princliple
+        // P = Principal
         // r = annual interest
         // n = compounded times per year
         // t = term in years

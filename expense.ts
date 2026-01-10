@@ -101,10 +101,13 @@ export class Expense  {
 export class UpfrontExpense extends Expense {
     constructor(label: string, desc: string, upfront_amount: number, loan_term: number, hold_term: number) {
         super(label, desc);
-        // TODO - the remainder ratio could be adjusted here to include appreciation/depreciation.
+        // Upfront expenses are amortized linearly in present dollars over the loan term.
+        // This is a separation of concerns: ownership costs (equivalent rent, transaction costs, etc.)
+        // are calculated in nominal present value terms as committed to the loan, while appreciation
+        // and investment returns are calculated separately in the InvestmentReturn class.
         const remainder_ratio =  (hold_term >= loan_term) ? 0 : ((loan_term - hold_term) / loan_term);
         const exit_remainder_amount = upfront_amount * remainder_ratio;
         this.update_upfront(upfront_amount, exit_remainder_amount);
     }
-    
+
 }

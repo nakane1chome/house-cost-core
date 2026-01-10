@@ -14,12 +14,12 @@ export class TaxedAmount extends Expense {
                 deposit_interest: Expense, 
                 split: number) {
         const my_amount = deposit_interest.annual() / split;
+        const tax_result = TaxBracket.MarginalTax(purchaser.income, my_amount);
         super(`Tax on ${reason}`,
               `The tax that would have been paid on interest (${my_amount}) or other returns made on the deposit, ` +
-            "if it had not been used as equity for the property purchase.", 
+            "if it had not been used as equity for the property purchase.",
              Expense.ONE_YEAR);
-        const amount = TaxBracket.MarginalTax(purchaser.income, my_amount);
-        this.update_repeating(amount);
+        this.update_repeating(tax_result.amount);
     }
 }
 
@@ -32,10 +32,10 @@ export class TaxedAmountWithDeduction extends Expense {
                 split: number) {
         const my_amount = (income.annual() - deduction.annual()) / split;
         super(`Tax on ${reason}`,
-              `Tax to be paid ${my_amount}, from incomee of ${income.annual()/split} on net amount after deduction of ${deduction.annual()/split}.`, 
+              `Tax to be paid ${my_amount}, from income of ${income.annual()/split} on net amount after deduction of ${deduction.annual()/split}.`,
              Expense.ONE_YEAR);
-        const amount = TaxBracket.MarginalTax(purchaser.income, my_amount);
-        this.update_repeating(amount);
+        const tax_result = TaxBracket.MarginalTax(purchaser.income, my_amount);
+        this.update_repeating(tax_result.amount);
     }
 }
 
@@ -53,19 +53,25 @@ export class CGTTaxedAmount extends Expense {
         const total_gain = gain.accumulated(params.config.hold_term) ;
         const taxable_amount = (total_gain * discount_rate) / split;
 
-        super(`Capital Gains Tax for ${reason}`,
-              `Apply a discount rate of ${discount_rate}, on a gain of ${total_gain} (including depreication), for a amount ${taxable_amount} that was split betwee ${split}`,
-              Expense.ONE_YEAR);
-
         if (taxable_amount > 0) {
+            const tax_result = TaxBracket.MarginalTax(purchaser.income, taxable_amount);
+            
+            super(`Capital Gains Tax for ${reason}`,
+                  `Apply a discount of ${discount_rate*100}%, on a gain of ${total_gain}, split between ${split} purchaser(s), for a final amount of ${taxable_amount}: ${tax_result.reason}`,
+                  Expense.ONE_YEAR);
             // Tax on the discounted capital gain.
-            const tax_amount = TaxBracket.MarginalTax(purchaser.income, taxable_amount);
             // Apply the amount as an exit amount
-            this.update_upfront(0, - tax_amount);
+            this.update_upfront(0, - tax_result.amount);
             this.update_repeating(0);
+
+
         } else {
+            super(`Capital Gains Tax for ${reason}`,
+                  `No income to be taxed.`,
+                  Expense.ONE_YEAR);
             this.update_upfront(0, 0);
             this.update_repeating(0);
+
         }
 
     }

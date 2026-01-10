@@ -16,7 +16,7 @@ import { NodeInfo } from "./node_info";
 
 export class CostOfOwnership {
 
-    // Cost of ownwer ship
+    // Cost of ownership
     public cost : Expense;
     // Cash flow required to own (cost + principle)
     public cash_flow : Expense;
@@ -41,9 +41,9 @@ export class CostOfOwnership {
         this.loan_principle = new MortgagePrincipal(params, loan_amount);
         this.deposit_income = new OpportunityCostOfDownPayment(params);
 
-        this.cost = new Expense(`Cost of Ownership`,
-                                   "All expenses and financing costs. This is the equivalent of rent. " +
-                                   "(Excludes equity in the property.)");
+        this.cost = new Expense(`Equivalent Rent`,
+                                   "All expenses and financing costs. This represents the net cost of owning comparable to renting. " +
+                                   "(Excludes equity building through principal repayment.)");
         this.cost_finance = new Expense("Cost of Finance",
                                            "The cost borrowing money " +
                                            "to purchase and the opportunity cost of not investing " +

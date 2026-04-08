@@ -6,27 +6,26 @@
 import { Params } from "./param";
 import { Expense } from "./expense";
 
-// http://www.sa.gov.au/subject/Housing,+property+and+land/Customer+entry+points+and+contacts/Land+services+industry+entry+point/Fees+and+charges
-// http://www.sa.gov.au/upload/franchise/Housing,%20property%20and%20land/LSG/LSG_transfer_registration_fees_2013_2014.pdf
+// https://www.landservices.com.au/our-resources/2025-26-fy-transfer-registration-fees/
 export class  TransferReg extends Expense {
-    
+
     constructor(params: Params) {
         super("Transfer Registration Fee",
-             "The fee paid to tranfer the registration of the property title at purchase.")
+             "The fee paid to transfer the registration of the property title at purchase.")
         let amount = 0;
         switch (params.location.state) {
             case "SA" :
-                if (params.property.value<=5000)
-                    amount=148;
-                else if (params.property.value<=20000)
-                    amount=163;
-                else if (params.property.value<=40000)
-                    amount=180;
-                else {
-                    const rank=params.property.value/10000;
-                    amount=252 + (rank-4)*73.5;
-                }
+                amount = TransferReg.calculateSA(params.property.value);
                 this.update_upfront(amount, 0)
         }
+    }
+
+    static calculateSA(value: number): number {
+        if (value <= 5000) return 198;
+        if (value <= 20000) return 221;
+        if (value <= 40000) return 243;
+        // $40,001+: $342 base + $102 per $10K bracket
+        const brackets = Math.floor((value - 40001) / 10000);
+        return 342 + brackets * 102;
     }
 }

@@ -41,11 +41,21 @@ export class NewHome {
     build_cost= 0;
     establish_cost= 0;
 }
+export class PurchaseCosts {
+    conveyancing = 0;
+    inspections = 0;
+}
+export class Offset {
+    starting_balance = 0;
+    monthly_contribution = 0;
+}
 export class Params {
     location = new Location;
     property = new Property;
     config = new Config;
     new_home = new NewHome;
+    purchase_costs = new PurchaseCosts;
+    offset = new Offset;
     economy = new Economy;
     purchasers = new Array<Purchaser>(); //  Array<Purchasers>;
 }

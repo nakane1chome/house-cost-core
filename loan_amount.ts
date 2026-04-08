@@ -25,6 +25,18 @@ export class TransactionCosts extends Expense {
             this.sub(new GrantAmount(params));
             this.add(new StampDuty(params) );
             this.add(new TransferReg(params));
+            if (params.purchase_costs.conveyancing > 0) {
+                this.add(new UpfrontExpense("Conveyancing",
+                    "Legal fees for property transfer.",
+                    params.purchase_costs.conveyancing,
+                    params.config.loan_term, params.config.hold_term));
+            }
+            if (params.purchase_costs.inspections > 0) {
+                this.add(new UpfrontExpense("Building Inspections",
+                    "Pre-purchase property inspections.",
+                    params.purchase_costs.inspections,
+                    params.config.loan_term, params.config.hold_term));
+            }
         }
         
     }

@@ -85,6 +85,9 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         p.new_home.build_cost = 200000;
         p.new_home.establish_cost = 40000;
 
+        p.purchase_costs.conveyancing = 800;
+        p.purchase_costs.inspections = 500;
+
         p.purchasers.push(new Purchaser());
         p.purchasers.push(new Purchaser());
         p.purchasers[0].income = 82440; // ave male weekly total earn * 52, http://www.abs.gov.au/ausstats/abs@.nsf/Latestproducts/6302.0Main%20Features5Nov%202018?opendocument&tabname=Summary&prodno=6302.0&issue=Nov%202018&num=&view=

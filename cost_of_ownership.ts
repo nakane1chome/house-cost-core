@@ -7,6 +7,7 @@ import {Params} from "./param";
 import {Expense} from "./expense";
 import {MortgageInterest, MortgagePrincipal} from "./mortgage"
 import {OpportunityCostOfDownPayment} from "./deposit_income"
+import {OffsetSavings} from "./offset_savings"
 import {NewWater} from "./water"
 import {LoanAmount} from "./loan_amount"
 import {CouncilRates} from "./council_rates"
@@ -28,6 +29,7 @@ export class CostOfOwnership {
     public loan_interest : MortgageInterest;
     public loan_principle : MortgagePrincipal;
     public deposit_income : OpportunityCostOfDownPayment;
+    public offset_savings : OffsetSavings;
     public currency : string;
 
     //public taxes? : Expense;
@@ -40,6 +42,7 @@ export class CostOfOwnership {
         this.loan_interest = new MortgageInterest(params, loan_amount);
         this.loan_principle = new MortgagePrincipal(params, loan_amount);
         this.deposit_income = new OpportunityCostOfDownPayment(params);
+        this.offset_savings = new OffsetSavings(params, loan_amount);
 
         this.cost = new Expense(`Equivalent Rent`,
                                    "All expenses and financing costs. This represents the net cost of owning comparable to renting. " +
@@ -71,6 +74,7 @@ export class CostOfOwnership {
         
         this.cost_finance.add(this.loan_interest); // Actual cost
         this.cost_finance.add(this.deposit_income)  // Oportunity cost
+        this.cost_finance.sub(this.offset_savings); // Savings from offset account
 
         this.cost.add(this.cost_finance);
         this.cost.add(this.cost_expenses);
@@ -78,6 +82,7 @@ export class CostOfOwnership {
         this.cash_flow.add(this.cost_expenses);
         this.cash_flow.add(this.loan_interest);
         this.cash_flow.add(this.loan_principle);
+        this.cash_flow.sub(this.offset_savings);
 
         this.loan_payments.add(this.loan_interest);
         this.loan_payments.add(this.loan_principle);

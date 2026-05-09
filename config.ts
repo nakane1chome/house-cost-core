@@ -39,8 +39,8 @@ async function loadRatesData() {
         // Fallback rates
         return {
             rates: {
-                AUS: { mortgageRate: 6.0, savingsRate: 3.5 },
-                JPN: { mortgageRate: 1.9, savingsRate: 0.1 }
+                AUS: { mortgageRate: 6.0, savingsRate: 3.5, appreciationRate: 4.0 },
+                JPN: { mortgageRate: 1.9, savingsRate: 0.1, appreciationRate: 2.0 }
             }
         };
     }
@@ -69,6 +69,9 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
 
     if (country == "AUS") {
         p.property.value =  480000; // https://www.sa.gov.au/topics/planning-and-property/buying-a-home-or-property/researching-a-property/median-house-sales-by-quarter
+        p.property.rent = (p.property.value * 0.05 / 52);
+        p.property.max_rent = 5000;
+        p.property.rent_fee_ratio = 0.1;
         p.location.postcode =postcode || "5000";
         //p.location.state = PostcodeToState(p.location.country, p.location.postcode);
         p.location.state = PostcodeToState(p.location.postcode);
@@ -82,6 +85,9 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         p.new_home.build_cost = 200000;
         p.new_home.establish_cost = 40000;
 
+        p.purchase_costs.conveyancing = 800;
+        p.purchase_costs.inspections = 500;
+
         p.purchasers.push(new Purchaser());
         p.purchasers.push(new Purchaser());
         p.purchasers[0].income = 82440; // ave male weekly total earn * 52, http://www.abs.gov.au/ausstats/abs@.nsf/Latestproducts/6302.0Main%20Features5Nov%202018?opendocument&tabname=Summary&prodno=6302.0&issue=Nov%202018&num=&view=
@@ -89,6 +95,7 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         // Use cached mortgage rate from rates.json
         p.economy.loan_rate = ratesData.rates.AUS.mortgageRate;
         p.economy.save_rate = ratesData.rates.AUS.savingsRate;
+        p.economy.appreciation_rate = ratesData.rates.AUS.appreciationRate;
     } 
 
 
@@ -112,7 +119,8 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         //p.purchasers[2].income2 = 0;
 
         p.economy.loan_rate = ratesData.rates.JPN.mortgageRate;
-        p.economy.save_rate = ratesData.rates.JPN.savingsRate; 
+        p.economy.save_rate = ratesData.rates.JPN.savingsRate;
+        p.economy.appreciation_rate = ratesData.rates.JPN.appreciationRate; 
     } 
 
 }

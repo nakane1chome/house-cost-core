@@ -22,10 +22,10 @@ export class GrantAmount extends Expense {
                     } else {
                         amount = params.config.new_home ? 15000 : 5000;
                     }
-                    this.update_upfront(amount)
+                    this.update_upfront(amount, 0)
             }
         } else {
-            this.update_upfront(0)
+            this.update_upfront(0, 0)
         }
     }
 }

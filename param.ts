@@ -7,11 +7,15 @@ export class Property {
     value= 0;
     land_value= 0;
     building_value= 0;
+    rent= 0;    
+    max_rent=0;
+    rent_fee_ratio = 0;    
     community_title=false;
 }
 export class Economy {
     loan_rate= 0;
     save_rate= 0;
+    appreciation_rate= 0;
 }
 export class Purchaser {
     enable = false;
@@ -37,11 +41,21 @@ export class NewHome {
     build_cost= 0;
     establish_cost= 0;
 }
+export class PurchaseCosts {
+    conveyancing = 0;
+    inspections = 0;
+}
+export class Offset {
+    starting_balance = 0;
+    monthly_contribution = 0;
+}
 export class Params {
     location = new Location;
     property = new Property;
     config = new Config;
     new_home = new NewHome;
+    purchase_costs = new PurchaseCosts;
+    offset = new Offset;
     economy = new Economy;
     purchasers = new Array<Purchaser>(); //  Array<Purchasers>;
 }

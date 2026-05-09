@@ -8,13 +8,13 @@ import { TaxedAmount } from "./taxed_amount";
 import { SavingsInterest } from "./savings_interest";
 import { Expense } from "./expense";
 
-export class DepositIncome extends Expense {
+export class OpportunityCostOfDownPayment extends Expense {
 
     public savings_interest : SavingsInterest;
 
     constructor(params: Params) {
-        super("Lost Deposit Income",
-             "The income that could have been earned by equity invested in the house as a deposit. " +
+        super("Opportunity Cost for Down Payment",
+             "The income that could have been earned by equity invested in the house as a down payment. " +
             "Could be interest or other returns.",
              Expense.ONE_YEAR)
         const  purchaser_cnt = params.purchasers.length;
@@ -29,6 +29,7 @@ export class DepositIncome extends Expense {
         for (let i=0; i < purchaser_cnt; i++) {
             if (params.purchasers[i].enable) {
                 const taxed_amount = new TaxedAmount(
+                    `interest on downpayment, purchaser ${i} `,
                     params.purchasers[i], 
                     this.savings_interest,enabled_cnt);
                 this.sub(taxed_amount);

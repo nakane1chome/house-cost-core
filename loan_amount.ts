@@ -3,7 +3,7 @@
    Housing Cost Model
 */
 
-import { Expense,  UpfrontExpense } from "./expense";
+import { Expense, UpfrontExpense, SunkUpfrontExpense } from "./expense";
 import { Params } from "./param";
 import { GrantAmount } from "./grant_amount";
 import { StampDuty } from "./stamp_duty";
@@ -30,16 +30,14 @@ export class TransactionCosts extends Expense {
                 this.add(new CommercialGST(params));
             }
             if (params.purchase_costs.conveyancing > 0) {
-                this.add(new UpfrontExpense("Conveyancing",
-                    "Legal fees for property transfer.",
-                    params.purchase_costs.conveyancing,
-                    params.config.loan_term, params.config.hold_term));
+                this.add(new SunkUpfrontExpense("Conveyancing",
+                    "Legal fees for property transfer (sunk at settlement).",
+                    params.purchase_costs.conveyancing));
             }
             if (params.purchase_costs.inspections > 0) {
-                this.add(new UpfrontExpense("Building Inspections",
-                    "Pre-purchase property inspections.",
-                    params.purchase_costs.inspections,
-                    params.config.loan_term, params.config.hold_term));
+                this.add(new SunkUpfrontExpense("Building Inspections",
+                    "Pre-purchase property inspections (sunk at settlement).",
+                    params.purchase_costs.inspections));
             }
         }
         

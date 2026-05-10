@@ -10,7 +10,7 @@
    Other / n/a: no GST modelling (residential, or commercial where treatment is unspecified).
 */
 
-import { Expense, UpfrontExpense } from "./expense";
+import { Expense, SunkUpfrontExpense } from "./expense";
 import { Params } from "./param";
 
 export class CommercialGST extends Expense {
@@ -35,16 +35,18 @@ export class CommercialGST extends Expense {
             case "taxable_input_credit": {
                 // 10% GST on purchase, claimed back as input credit (net-zero for registered buyer)
                 // Modelled as two cancelling Expenses to make the mechanics visible.
+                // Both are sunk at settlement (no exit remainder) — the credit is realised
+                // at the next BAS quarter, not held against the property.
                 const gst = params.property.value * 0.10;
-                const charge = new UpfrontExpense(
+                const charge = new SunkUpfrontExpense(
                     "GST charged on purchase",
                     "10% GST charged on commercial property purchase value.",
-                    gst, params.config.loan_term, params.config.hold_term
+                    gst
                 );
-                const credit = new UpfrontExpense(
+                const credit = new SunkUpfrontExpense(
                     "GST input credit",
                     "GST input credit claimed via BAS — offsets the GST charge for a registered investor-buyer.",
-                    gst, params.config.loan_term, params.config.hold_term
+                    gst
                 );
                 this.add(charge);
                 this.sub(credit);

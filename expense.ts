@@ -125,3 +125,18 @@ export class SunkUpfrontExpense extends Expense {
         this.update_upfront(upfront_amount, 0);
     }
 }
+
+export class PreservedUpfrontExpense extends Expense {
+    /**
+     * A one-off contribution that remains intact at exit. Use for the deposit
+     * and similar buyer equity contributions where the full amount is recoverable
+     * at exit (modulo property-value changes, which are modelled separately by
+     * AssetAppreciation in the InvestmentReturn branch). Distinct from
+     * UpfrontExpense which amortizes the contribution over the loan term, and
+     * SunkUpfrontExpense which treats the contribution as fully consumed.
+     */
+    constructor(label: string, desc: string, upfront_amount: number) {
+        super(label, desc);
+        this.update_upfront(upfront_amount, upfront_amount);
+    }
+}

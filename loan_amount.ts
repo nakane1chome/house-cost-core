@@ -3,7 +3,7 @@
    Housing Cost Model
 */
 
-import { Expense, UpfrontExpense, SunkUpfrontExpense } from "./expense";
+import { Expense, UpfrontExpense, SunkUpfrontExpense, PreservedUpfrontExpense } from "./expense";
 import { Params } from "./param";
 import { GrantAmount } from "./grant_amount";
 import { StampDuty } from "./stamp_duty";
@@ -73,7 +73,7 @@ export class LoanAmount extends Expense {
     //public transfer_reg :TransferReg;
     
     public value: UpfrontExpense;
-    public deposit: UpfrontExpense;
+    public deposit: PreservedUpfrontExpense;
     public transaction_costs: TransactionCosts;
 
     constructor(params: Params) {
@@ -86,11 +86,9 @@ export class LoanAmount extends Expense {
                                          params.config.loan_term,
                                          params.config.hold_term);
         
-        this.deposit = new UpfrontExpense("Deposit",
-                                           "Loan deposit",
-                                           params.config.deposit,
-                                           params.config.loan_term,
-                                           params.config.hold_term);
+        this.deposit = new PreservedUpfrontExpense("Deposit",
+                                           "Loan deposit — buyer's equity contribution; remains intact at exit (property-value changes are modelled separately).",
+                                           params.config.deposit);
         
         this.transaction_costs = new TransactionCosts(params);
 

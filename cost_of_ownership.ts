@@ -13,6 +13,7 @@ import {LoanAmount} from "./loan_amount"
 import {CouncilRates} from "./council_rates"
 import {PropertyInsurance} from "./property_insurance"
 import {JapanFixedAssetTax} from "./japan_fixed_asset_tax"
+import { BodyCorporateFees } from "./body_corp_fees"
 import { NodeInfo } from "./node_info";
 
 export class CostOfOwnership {
@@ -68,6 +69,7 @@ export class CostOfOwnership {
         }
         const insurance = new PropertyInsurance(params);
         this.cost_expenses.add(insurance);
+        this.cost_expenses.add(new BodyCorporateFees(params));
 
         this.loan_payments = new Expense("Loan Payments",
                                            "Payments that must be made to service the home loan.");

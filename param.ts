@@ -7,10 +7,13 @@ export class Property {
     value= 0;
     land_value= 0;
     building_value= 0;
-    rent= 0;    
+    rent= 0;
     max_rent=0;
-    rent_fee_ratio = 0;    
+    rent_fee_ratio = 0;
     community_title=false;
+    commercial = false;                   // commercial vs residential
+    gst_treatment = "n/a";                // "going_concern" | "taxable_input_credit" | "n/a"
+    body_corp_fees_annual = 0;            // annual body corp / strata levies (AUD or JPY per location.country)
 }
 export class Economy {
     loan_rate= 0;

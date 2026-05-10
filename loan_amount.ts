@@ -9,6 +9,7 @@ import { GrantAmount } from "./grant_amount";
 import { StampDuty } from "./stamp_duty";
 import { JapanContractStampDuty,  JapanPropertyAcquisitionTax, JapanTitleRegistrationStampDuty } from "./japan_stamp_duty";
 import { TransferReg } from "./transfer_reg";
+import { CommercialGST } from "./commercial_gst";
 
 export class TransactionCosts extends Expense {
 
@@ -25,6 +26,9 @@ export class TransactionCosts extends Expense {
             this.sub(new GrantAmount(params));
             this.add(new StampDuty(params) );
             this.add(new TransferReg(params));
+            if (params.property.commercial) {
+                this.add(new CommercialGST(params));
+            }
             if (params.purchase_costs.conveyancing > 0) {
                 this.add(new UpfrontExpense("Conveyancing",
                     "Legal fees for property transfer.",

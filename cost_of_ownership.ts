@@ -14,6 +14,7 @@ import {CouncilRates} from "./council_rates"
 import {PropertyInsurance} from "./property_insurance"
 import {JapanFixedAssetTax} from "./japan_fixed_asset_tax"
 import { BodyCorporateFees } from "./body_corp_fees"
+import { TenantOutgoingsRecovery } from "./tenant_outgoings_recovery"
 import { NodeInfo } from "./node_info";
 
 export class CostOfOwnership {
@@ -63,13 +64,22 @@ export class CostOfOwnership {
         if (params.location.country === "JPN") {
             this.cost_expenses.add(new JapanFixedAssetTax(params));
         }
+        let water_expense: Expense | null = null;
+        let council_rates_expense: Expense | null = null;
         if (params.location.country === "AUS") {
-            this.cost_expenses.add(new NewWater(params));
-            this.cost_expenses.add(new CouncilRates(params));
+            water_expense = new NewWater(params);
+            council_rates_expense = new CouncilRates(params);
+            this.cost_expenses.add(water_expense);
+            this.cost_expenses.add(council_rates_expense);
         }
         const insurance = new PropertyInsurance(params);
         this.cost_expenses.add(insurance);
-        this.cost_expenses.add(new BodyCorporateFees(params));
+        const body_corp = new BodyCorporateFees(params);
+        this.cost_expenses.add(body_corp);
+        // Tenant outgoings recovery (commercial leases only): subtracts a
+        // mirror of recovered outgoings from cost_expenses. Zero for gross
+        // leases and residential.
+        this.cost_expenses.sub(new TenantOutgoingsRecovery(params, water_expense, council_rates_expense, insurance, body_corp));
 
         this.loan_payments = new Expense("Loan Payments",
                                            "Payments that must be made to service the home loan.");

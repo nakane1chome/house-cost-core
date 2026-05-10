@@ -14,6 +14,7 @@ export class Property {
     commercial = false;                   // commercial vs residential
     gst_treatment = "n/a";                // "going_concern" | "taxable_input_credit" | "n/a"
     body_corp_fees_annual = 0;            // annual body corp / strata levies (AUD or JPY per location.country)
+    lease_type = "gross";                 // "gross" | "net" | "semi_gross" — outgoings recovery from tenant (commercial only)
 }
 export class Economy {
     loan_rate= 0;

@@ -40,6 +40,7 @@ export class Config {
     new_home = false;
     first_home = false;
     owner_occupier=true;
+    cgt_regime = "fy27";                  // "fy26" (50% discount + MTR; grandfathered pre-1-July-2026 acquisitions) | "fy27" (no discount + max(MTR, 30%); post-1-July-2026 acquisitions)
 }
 export class NewHome {
     build_cost= 0;

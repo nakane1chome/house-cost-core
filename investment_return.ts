@@ -10,6 +10,7 @@ import { Depreciation } from "./depreciation";
 import { TaxBracket } from "./marginal_tax";
 import { CostOfOwnership } from "./cost_of_ownership";
 import { TaxedAmountWithDeduction, CGTTaxedAmount } from "./taxed_amount";
+import { CGTTaxedAmountFy27 } from "./cgt_taxed_amount_fy27";
 
 /**
  * Represents the equity retained in the property
@@ -75,7 +76,7 @@ export class InitialEquity extends Expense {
 
 export class CGTax extends Expense {
 
-    public cgt_tax : Array<CGTTaxedAmount>;
+    public cgt_tax : Array<Expense>;
     
     constructor(params: Params, 
                 asset_appreciation: AssetAppreciation,
@@ -94,22 +95,25 @@ export class CGTax extends Expense {
         }
 
         if (!params.config.owner_occupier) {
+            const CgtCtor: any = params.config.cgt_regime === "fy27"
+                ? CGTTaxedAmountFy27
+                : CGTTaxedAmount;
             let j=0;
             for (let i=0; i < purchaser_cnt; i++) {
                 if (params.purchasers[i].enable) {
-                    this.cgt_tax[j] = new CGTTaxedAmount(params,
-                                                         `Appreciation, purchaser ${i}`,
-                                                         params.purchasers[i],
-                                                         asset_appreciation,
-                                                         enabled_cnt);
+                    this.cgt_tax[j] = new CgtCtor(params,
+                                                  `Appreciation, purchaser ${i}`,
+                                                  params.purchasers[i],
+                                                  asset_appreciation,
+                                                  enabled_cnt);
                     this.add(this.cgt_tax[j]);
                     j+=1;
                     if (depreciation != undefined) {
-                        this.cgt_tax[j] = new CGTTaxedAmount(params,
-                                                             `Depreciation, purchaser ${i}`,
-                                                             params.purchasers[i],
-                                                             depreciation,
-                                                             enabled_cnt);
+                        this.cgt_tax[j] = new CgtCtor(params,
+                                                      `Depreciation, purchaser ${i}`,
+                                                      params.purchasers[i],
+                                                      depreciation,
+                                                      enabled_cnt);
                         this.add(this.cgt_tax[j]);
                     }
                 }

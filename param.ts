@@ -15,6 +15,8 @@ export class Property {
     gst_treatment = "n/a";                // "going_concern" | "taxable_input_credit" | "n/a"
     body_corp_fees_annual = 0;            // annual body corp / strata levies (AUD or JPY per location.country)
     lease_type = "gross";                 // "gross" | "net" | "semi_gross" — outgoings recovery from tenant (commercial only)
+    construction = "rc";                  // "wood" (22yr) | "light_steel" (27yr) | "heavy_steel" (34yr) | "rc" (47yr) — JP statutory life
+    building_age = 0;                     // years at acquisition; drives JP used-building depreciation formula
 }
 export class Economy {
     loan_rate= 0;

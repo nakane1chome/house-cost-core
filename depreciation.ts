@@ -7,10 +7,42 @@ import { Params } from "./param";
 import { Expense } from "./expense";
 
 /**
+ * Japan 法定耐用年数 (statutory useful life) by construction type.
+ * 木造 22yr / 軽量鉄骨 27yr / 重量鉄骨 34yr / RC・SRC 47yr.
+ */
+function jpStatutoryLife(construction: string): number {
+    switch (construction) {
+        case "wood": return 22;
+        case "light_steel": return 27;
+        case "heavy_steel": return 34;
+        case "rc": return 47;
+        default: throw new Error(`Unknown construction: ${construction}. Valid: wood, light_steel, heavy_steel, rc.`);
+    }
+}
+
+/**
+ * Japan used-building remaining useful life (定額法).
+ * - age < statutory_life:  (statutory - age) + age × 0.2
+ * - age ≥ statutory_life:  statutory × 0.2
+ * Rounded down, minimum 2 years.
+ */
+function jpUsefulLife(construction: string, age: number): number {
+    const statutory = jpStatutoryLife(construction);
+    let life: number;
+    if (age < statutory) {
+        life = Math.floor((statutory - age) + age * 0.2);
+    } else {
+        life = Math.floor(statutory * 0.2);
+    }
+    return life < 2 ? 2 : life;
+}
+
+/**
  * Represents building depreciation for tax purposes
  *
  * Australia: Building write-off at 2.5% per year for capital works (buildings constructed after 1987)
- * Japan: Building depreciation varies by structure type (typically 22-47 years useful life)
+ * Japan: 定額法 over 法定耐用年数 with used-building reduction formula.
+ *        Construction type from params.property.construction; age from params.property.building_age.
  *
  * Note: Only applies to investment properties, not owner-occupied
  */
@@ -41,13 +73,18 @@ export class BuildingDepreciation extends Expense {
             // Applies to buildings constructed after 15 September 1987
             annual_depreciation = building_value * 0.025;
         } else if (params.location.country === "JPN") {
-            // Japan: Depreciation depends on structure type
-            // Concrete: 47 years (2.13% per year)
-            // Steel frame: 34 years (2.94% per year)
-            // Wood: 22 years (4.55% per year)
-            // Default to concrete for conservative estimate
-            const useful_life = 47; // years
-            annual_depreciation = building_value / useful_life;
+            // Japan: 定額法 over 法定耐用年数 with used-building formula.
+            // Construction enum (params.property.construction) selects statutory life;
+            // params.property.building_age applies the simplified used-building reduction.
+            //
+            // Library convention is a flat per-year deduction over the hold period.
+            // Real JP tax front-loads the full deduction across `useful_life` years
+            // then drops to zero — but the engine produces hold-aggregate figures, so
+            // we cap at hold_term to prevent over-deducting when useful_life < hold.
+            // Total deduction over hold ≈ building_value when hold ≥ useful_life.
+            const useful_life = jpUsefulLife(params.property.construction, params.property.building_age);
+            const effective_period = Math.max(useful_life, params.config.hold_term);
+            annual_depreciation = building_value / effective_period;
         }
 
         this.is_known = true;

@@ -17,6 +17,8 @@ export class Property {
     lease_type = "gross";                 // "gross" | "net" | "semi_gross" — outgoings recovery from tenant (commercial only)
     construction = "rc";                  // "wood" (22yr) | "light_steel" (27yr) | "heavy_steel" (34yr) | "rc" (47yr) — JP statutory life
     building_age = 0;                     // years at acquisition; drives JP used-building depreciation formula
+    renovation_value = 0;                 // capital improvement / 資本的支出 spend, tracked as a separate depreciation account
+    renovation_useful_life = 0;           // years; explicit per lead based on scope of work. 0 → no renovation deduction
 }
 export class Economy {
     loan_rate= 0;

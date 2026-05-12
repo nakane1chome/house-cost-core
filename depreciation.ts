@@ -139,20 +139,66 @@ export class FixturesDepreciation extends Expense {
 }
 
 /**
+ * Capital improvement / renovation depreciation as a separate account.
+ *
+ * Under JP 資本的支出 practice, renovation spend is depreciated as a distinct
+ * 償却資産 over its own useful life rather than merging into the host
+ * building's residual basis. This matters most when the host building's
+ * remaining useful life is short (used 木造) and the renovation is recent.
+ *
+ * useful_life is supplied explicitly per lead via params.property.renovation_useful_life.
+ * AU leads typically roll renovation into building_value under Div 43 instead;
+ * the field is available but conventionally unused on the AU side.
+ *
+ * As with BuildingDepreciation, the annual figure is capped at
+ * renovation_value / max(useful_life, hold_term) so the hold-aggregate
+ * matches the renovation cost.
+ */
+export class RenovationDepreciation extends Expense {
+    constructor(params: Params) {
+        super("Renovation Depreciation",
+              "Tax-deductible depreciation on capital improvements (separate account from host building).");
+
+        if (params.config.owner_occupier) {
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
+        const value = params.property.renovation_value || 0;
+        const useful_life = params.property.renovation_useful_life || 0;
+        if (value <= 0 || useful_life <= 0) {
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
+        const effective_period = Math.max(useful_life, params.config.hold_term);
+        const annual_depreciation = value / effective_period;
+
+        this.is_known = true;
+        this.update_repeating(annual_depreciation);
+    }
+}
+
+/**
  * Total depreciation available for tax deduction
  */
 export class Depreciation extends Expense {
     public building: BuildingDepreciation;
     public fixtures: FixturesDepreciation;
+    public renovation: RenovationDepreciation;
 
     constructor(params: Params) {
         super("Depreciation",
-              "Total tax-deductible depreciation on building and fixtures (investment properties only).");
+              "Total tax-deductible depreciation on building, fixtures, and renovations (investment properties only).");
 
         this.building = new BuildingDepreciation(params);
         this.fixtures = new FixturesDepreciation(params);
+        this.renovation = new RenovationDepreciation(params);
 
         this.add(this.building);
         this.add(this.fixtures);
+        this.add(this.renovation);
     }
 }

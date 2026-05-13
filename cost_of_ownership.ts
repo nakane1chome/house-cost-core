@@ -5,10 +5,11 @@
 
 import {Params} from "./param";
 import {Expense} from "./expense";
-import {MortgageInterest} from "./mortgage_interest"
-import {MortgagePrinciple} from "./mortgage_principle"
-import {DepositIncome} from "./deposit_income"
+import {MortgageInterest, MortgagePrincipal} from "./mortgage"
+import {OpportunityCostOfDownPayment} from "./deposit_income"
+import {OffsetSavings} from "./offset_savings"
 import {NewWater} from "./water"
+import {LoanAmount} from "./loan_amount"
 import {CouncilRates} from "./council_rates"
 import {PropertyInsurance} from "./property_insurance"
 import {JapanFixedAssetTax} from "./japan_fixed_asset_tax"
@@ -16,7 +17,7 @@ import { NodeInfo } from "./node_info";
 
 export class CostOfOwnership {
 
-    // Cost of ownwer ship
+    // Cost of ownership
     public cost : Expense;
     // Cash flow required to own (cost + principle)
     public cash_flow : Expense;
@@ -26,25 +27,27 @@ export class CostOfOwnership {
     public cost_expenses : Expense;
     
     public loan_interest : MortgageInterest;
-    public loan_principle : MortgagePrinciple;
-    public deposit_income : DepositIncome;
+    public loan_principle : MortgagePrincipal;
+    public deposit_income : OpportunityCostOfDownPayment;
+    public offset_savings : OffsetSavings;
     public currency : string;
 
     //public taxes? : Expense;
     //public water? : Expense;
     //public rates? : CouncilRates;
     //public insurance : PropertyInsurance;
-    constructor(params: Params, loan_amount: number) {
+    constructor(params: Params, loan_amount: LoanAmount) {
 
         this.currency = params.location.currency;
         this.loan_interest = new MortgageInterest(params, loan_amount);
-        this.loan_principle = new MortgagePrinciple(params, loan_amount);
-        this.deposit_income = new DepositIncome(params);
+        this.loan_principle = new MortgagePrincipal(params, loan_amount);
+        this.deposit_income = new OpportunityCostOfDownPayment(params);
+        this.offset_savings = new OffsetSavings(params, loan_amount);
 
-        this.cost = new Expense(`Cost of Ownership ${params.location.state}`,
-                                   "All expenses and financing costs. This is the equivalent of rent. " +
-                                   "(Excludes equity in the property.)");
-        this.cost_finance = new Expense("Finance Cost",
+        this.cost = new Expense(`Equivalent Rent`,
+                                   "All expenses and financing costs. This represents the net cost of owning comparable to renting. " +
+                                   "(Excludes equity building through principal repayment.)");
+        this.cost_finance = new Expense("Cost of Finance",
                                            "The cost borrowing money " +
                                            "to purchase and the opportunity cost of not investing " +
                                            "the equity elsewhere.",
@@ -52,7 +55,7 @@ export class CostOfOwnership {
         this.cost_expenses = new Expense("Ongoing Expenses",
                                            "Costs that must be paid for by the property owner.",
                                         Expense.ONE_YEAR);
-        this.cash_flow = new Expense("Cash Flow",
+        this.cash_flow = new Expense("Cash Outflow",
                                      "Sum of all payments needed to maintain ownership of the property.",
                                     Expense.ONE_YEAR);
 
@@ -71,6 +74,7 @@ export class CostOfOwnership {
         
         this.cost_finance.add(this.loan_interest); // Actual cost
         this.cost_finance.add(this.deposit_income)  // Oportunity cost
+        this.cost_finance.sub(this.offset_savings); // Savings from offset account
 
         this.cost.add(this.cost_finance);
         this.cost.add(this.cost_expenses);
@@ -78,6 +82,7 @@ export class CostOfOwnership {
         this.cash_flow.add(this.cost_expenses);
         this.cash_flow.add(this.loan_interest);
         this.cash_flow.add(this.loan_principle);
+        this.cash_flow.sub(this.offset_savings);
 
         this.loan_payments.add(this.loan_interest);
         this.loan_payments.add(this.loan_principle);

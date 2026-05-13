@@ -11,6 +11,24 @@ import { TaxBracket } from "./marginal_tax";
 import { CostOfOwnership } from "./cost_of_ownership";
 import { TaxedAmountWithDeduction, CGTTaxedAmount } from "./taxed_amount";
 import { CGTTaxedAmountFy27 } from "./cgt_taxed_amount_fy27";
+import { JpNonResidentRentalTax } from "./jp_non_resident_rental_tax";
+import { AuTaxOnForeignRentalIncome } from "./au_tax_on_foreign_rental";
+import { ForeignIncomeTaxOffsetRental, ForeignIncomeTaxOffsetCgt } from "./foreign_income_tax_offset";
+import { JpNonResidentCgt } from "./jp_non_resident_cgt";
+import { JapanFixedAssetTax } from "./japan_fixed_asset_tax";
+
+/**
+ * Helper: resolve the investor tax residence with backwards-compat fallback to location.country.
+ * Returns the effective tax-residence country code ("AUS" | "JPN" | etc.).
+ */
+function effectiveTaxResidence(params: Params, purchaser: { tax_residence: string }): string {
+    return purchaser.tax_residence || params.location.country;
+}
+
+/** Returns true if any enabled purchaser is AU tax-resident. */
+function hasAuResident(params: Params): boolean {
+    return params.purchasers.some(p => p.enable && effectiveTaxResidence(params, p) === "AUS");
+}
 
 /**
  * Represents the equity retained in the property
@@ -99,14 +117,20 @@ export class CGTax extends Expense {
                 ? CGTTaxedAmountFy27
                 : CGTTaxedAmount;
             let j=0;
+            let total_au_cgt = 0;
             for (let i=0; i < purchaser_cnt; i++) {
                 if (params.purchasers[i].enable) {
+                    // AU CGT fires for AU-resident purchasers (with backwards-compat fallback to location.country).
+                    const tax_residence = effectiveTaxResidence(params, params.purchasers[i]);
+                    if (tax_residence !== "AUS") continue;
+
                     this.cgt_tax[j] = new CgtCtor(params,
                                                   `Appreciation, purchaser ${i}`,
                                                   params.purchasers[i],
                                                   asset_appreciation,
                                                   enabled_cnt);
                     this.add(this.cgt_tax[j]);
+                    total_au_cgt += -this.cgt_tax[j].exit_remainder_amount;
                     j+=1;
                     if (depreciation != undefined) {
                         this.cgt_tax[j] = new CgtCtor(params,
@@ -115,8 +139,21 @@ export class CGTax extends Expense {
                                                       depreciation,
                                                       enabled_cnt);
                         this.add(this.cgt_tax[j]);
+                        total_au_cgt += -this.cgt_tax[j].exit_remainder_amount;
+                        j+=1;
                     }
                 }
+            }
+
+            // Cross-jurisdictional JP source CGT (AU resident disposing of JP property):
+            // applies a flat 15.315% to the JP-side gain. The AU-side CGT above also applies
+            // (AU residents are taxed on worldwide gains); FITO bridges by crediting JP CGT
+            // against AU CGT (capped at min of the two).
+            if (params.location.country === "JPN" && hasAuResident(params)) {
+                const jp_cgt = new JpNonResidentCgt(params, asset_appreciation, depreciation, enabled_cnt);
+                this.add(jp_cgt);
+                const fito_cgt = new ForeignIncomeTaxOffsetCgt(jp_cgt, total_au_cgt);
+                this.sub(fito_cgt);
             }
         }
 
@@ -228,7 +265,7 @@ export class FeeOnRentalIncome extends Expense {
 export class TaxOnRentalIncome extends Expense {
     constructor(params: Params,  gross_income: Expense, fees: Expense) {
         super("Rental Income Tax",
-              "Tax on rental income from property.", Expense.ONE_YEAR);
+              "Tax on rental income from property (domestic case — property & purchaser in same jurisdiction).", Expense.ONE_YEAR);
 
         // Only applies to investment properties
         if (params.config.owner_occupier) {
@@ -246,9 +283,15 @@ export class TaxOnRentalIncome extends Expense {
         }
         for (let i=0; i < purchaser_cnt; i++) {
             if (params.purchasers[i].enable) {
+                // Only fire for the domestic case (purchaser tax_residence matches property country).
+                // Cross-jurisdictional cases are routed through AuTaxOnForeignRentalIncome
+                // (which accounts for AU-allowable deductions) + JpNonResidentRentalTax + FITO.
+                const tax_residence = effectiveTaxResidence(params, params.purchasers[i]);
+                if (tax_residence !== params.location.country) continue;
+
                 const taxed_amount = new TaxedAmountWithDeduction(
                     `Rent Income for purchaser ${i}`,
-                    params.purchasers[i], 
+                    params.purchasers[i],
                     gross_income, fees,enabled_cnt);
                 this.add(taxed_amount);
             }
@@ -341,35 +384,26 @@ export class TaxBenefit extends Expense {
             return;
         }
 
-        // Only applies to Australian tax system for now
-        // Japan has different tax treatment which could be added later
-        if (params.location.country === "AUS") {
-
-            // Tax benefit calculation uses the average deduction over the hold period as a compromise.
-            // In reality, deductible interest decreases each year as principal is paid down,
-            // and tax rates may also change over time, making year-by-year calculation complex.
-            // Using the average captures the overall tax benefit while avoiding the compounding
-            // error of applying only the first year's amount to all years.
-            const per_owner =  total_claim / total_purchasers;
-
-            // Calculate marginal tax on the deductions
-            // Negative because it's a benefit (reduces tax)
-            let tax_savings = 0;
-
-            for (const purchaser of params.purchasers) {
-                if (purchaser.enable) {
-                    const tax_result = TaxBracket.MarginalTax(purchaser.income, per_owner);
-                    tax_savings += tax_result.amount;
-                }
-            }
-            // Tax benefit is the amount saved, so it's a negative expense (income)
-            this.is_known = true;
-            this.update_repeating(tax_savings);
-        } else {
-            // For other countries, no tax benefit calculation yet
-            this.is_known = true;
-            this.update_repeating(0);
+        // Tax benefit applies to each purchaser at their tax-residence MTR.
+        // For AU residents, deductions reduce AU tax on assessable income (including foreign
+        // rental income — AU residents are taxed on worldwide income, so the same deductions
+        // apply whether the property is in AU or overseas).
+        //
+        // For JP residents, the tax-benefit calc against JP brackets is a future extension
+        // (JpNonResidentRentalTax handles the JP-side tax via MarginalTaxFor("JPN", ...),
+        // but it's not surfaced as a "benefit" in this aggregator). Currently only AU MTR
+        // benefit is captured here.
+        const per_owner =  total_claim / total_purchasers;
+        let tax_savings = 0;
+        for (const purchaser of params.purchasers) {
+            if (!purchaser.enable) continue;
+            const tax_residence = effectiveTaxResidence(params, purchaser);
+            if (tax_residence !== "AUS") continue;
+            const tax_result = TaxBracket.MarginalTaxFor("AUS", purchaser.income, per_owner);
+            tax_savings += tax_result.amount;
         }
+        this.is_known = true;
+        this.update_repeating(tax_savings);
     }
 }
 
@@ -446,8 +480,11 @@ export class NetInvestmentIncome extends Expense {
     public rental_income: NetRentalIncome;
     public tax_deductible_expenses: TaxDeductibleExpenses;
     public tax_benefits : GrossTaxBenefits;
+    public jp_non_resident_rental_tax?: JpNonResidentRentalTax;
+    public au_tax_on_foreign_rental?: AuTaxOnForeignRentalIncome;
+    public fito_rental?: ForeignIncomeTaxOffsetRental;
 
-    constructor(params: Params, loan_amount: number, 
+    constructor(params: Params, loan_amount: number,
                 ownership_cost: CostOfOwnership, depreciation: Expense) {
         super("Net Investment Income",
               "Income or loss from property after expenses.");
@@ -459,6 +496,27 @@ export class NetInvestmentIncome extends Expense {
         this.add(this.rental_income);
         this.sub(this.tax_deductible_expenses);
         this.add(this.tax_benefits);
+
+        // Cross-jurisdictional tax surfaces (AU resident + JP property).
+        // These classes self-gate: each is a no-op for same-jurisdiction scenarios.
+        const split = params.purchasers.filter(p => p.enable).length || 1;
+        const jp_property_tax = params.location.country === "JPN"
+            ? new JapanFixedAssetTax(params)
+            : new Expense("(no JP property tax)", "", Expense.ONE_YEAR);
+        if (params.location.country === "JPN" && !params.config.owner_occupier) {
+            this.jp_non_resident_rental_tax = new JpNonResidentRentalTax(
+                params, this.rental_income.rental_income, this.rental_income.rental_fee,
+                depreciation, jp_property_tax, split);
+            this.au_tax_on_foreign_rental = new AuTaxOnForeignRentalIncome(
+                params, this.rental_income.rental_income, this.rental_income.rental_fee,
+                this.tax_deductible_expenses, depreciation, split);
+            this.fito_rental = new ForeignIncomeTaxOffsetRental(
+                this.jp_non_resident_rental_tax, this.au_tax_on_foreign_rental);
+
+            this.sub(this.jp_non_resident_rental_tax);
+            this.sub(this.au_tax_on_foreign_rental);
+            this.add(this.fito_rental);
+        }
 
     }
 

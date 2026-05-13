@@ -28,6 +28,7 @@ export class Economy {
 export class Purchaser {
     enable = false;
     income = 0;
+    tax_residence = "";                   // "AUS" | "JPN" | "" (default empty → falls back to params.location.country for backwards compat)
 }
 export class Location {
     country="";

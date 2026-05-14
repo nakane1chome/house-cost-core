@@ -13,6 +13,7 @@ import {LoanAmount} from "./loan_amount"
 import {CouncilRates} from "./council_rates"
 import {PropertyInsurance} from "./property_insurance"
 import {JapanFixedAssetTax} from "./japan_fixed_asset_tax"
+import { CityPlanningTax } from "./city_planning_tax"
 import { BodyCorporateFees } from "./body_corp_fees"
 import { TenantOutgoingsRecovery } from "./tenant_outgoings_recovery"
 import { NodeInfo } from "./node_info";
@@ -32,6 +33,8 @@ export class CostOfOwnership {
     public loan_principle : MortgagePrincipal;
     public deposit_income : OpportunityCostOfDownPayment;
     public offset_savings : OffsetSavings;
+    public jp_fixed_asset_tax? : JapanFixedAssetTax;
+    public jp_city_planning_tax? : CityPlanningTax;
     public currency : string;
 
     //public taxes? : Expense;
@@ -62,7 +65,10 @@ export class CostOfOwnership {
                                     Expense.ONE_YEAR);
 
         if (params.location.country === "JPN") {
-            this.cost_expenses.add(new JapanFixedAssetTax(params));
+            this.jp_fixed_asset_tax = new JapanFixedAssetTax(params);
+            this.jp_city_planning_tax = new CityPlanningTax(params);
+            this.cost_expenses.add(this.jp_fixed_asset_tax);
+            this.cost_expenses.add(this.jp_city_planning_tax);
         }
         let water_expense: Expense | null = null;
         let council_rates_expense: Expense | null = null;

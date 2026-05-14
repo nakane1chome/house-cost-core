@@ -15,7 +15,6 @@ import { JpNonResidentRentalTax } from "./jp_non_resident_rental_tax";
 import { AuTaxOnForeignRentalIncome } from "./au_tax_on_foreign_rental";
 import { ForeignIncomeTaxOffsetRental, ForeignIncomeTaxOffsetCgt } from "./foreign_income_tax_offset";
 import { JpNonResidentCgt } from "./jp_non_resident_cgt";
-import { JapanFixedAssetTax } from "./japan_fixed_asset_tax";
 
 /**
  * Helper: resolve the investor tax residence with backwards-compat fallback to location.country.
@@ -500,10 +499,13 @@ export class NetInvestmentIncome extends Expense {
         // Cross-jurisdictional tax surfaces (AU resident + JP property).
         // These classes self-gate: each is a no-op for same-jurisdiction scenarios.
         const split = params.purchasers.filter(p => p.enable).length || 1;
-        const jp_property_tax = params.location.country === "JPN"
-            ? new JapanFixedAssetTax(params)
-            : new Expense("(no JP property tax)", "", Expense.ONE_YEAR);
         if (params.location.country === "JPN" && !params.config.owner_occupier) {
+            // Reuse cost_of_ownership's existing JP property-tax instances rather than
+            // creating duplicates. JP rental tax deducts both 固定資産税 + 都市計画税.
+            const jp_property_tax = new Expense("(JP property taxes deducted)", "", Expense.ONE_YEAR);
+            if (ownership_cost.jp_fixed_asset_tax) jp_property_tax.add(ownership_cost.jp_fixed_asset_tax);
+            if (ownership_cost.jp_city_planning_tax) jp_property_tax.add(ownership_cost.jp_city_planning_tax);
+
             this.jp_non_resident_rental_tax = new JpNonResidentRentalTax(
                 params, this.rental_income.rental_income, this.rental_income.rental_fee,
                 depreciation, jp_property_tax, split);

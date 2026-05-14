@@ -23,6 +23,7 @@
 
 import { Params } from "./param";
 import { Expense, SunkUpfrontExpense } from "./expense";
+import { jpBuildingAssessmentFactor } from "./depreciation";
 
 const ASSESSED_VALUE_RATIO = 0.7;
 const CITY_PLANNING_RATE = 0.003;          // statutory max 0.3%
@@ -40,9 +41,11 @@ export class CityPlanningTax extends Expense {
         let amount: number;
         if (land > 0 || building > 0) {
             const land_assessed = land * ASSESSED_VALUE_RATIO;
-            const building_assessed = building * ASSESSED_VALUE_RATIO;
+            const building_assessed_initial = building * ASSESSED_VALUE_RATIO;
+            const age_factor = jpBuildingAssessmentFactor(params.property.construction, params.property.building_age);
+            const building_depreciated = building_assessed_initial * age_factor;
             const land_factor = params.property.commercial ? 1.0 : RESIDENTIAL_LAND_FACTOR;
-            amount = (land_assessed * land_factor + building_assessed) * CITY_PLANNING_RATE;
+            amount = (land_assessed * land_factor + building_depreciated) * CITY_PLANNING_RATE;
 
             // Surface the working values as linked-only children.
             this.link(new SunkUpfrontExpense(
@@ -50,11 +53,15 @@ export class CityPlanningTax extends Expense {
                 `Land 固定資産税評価額 ≈ market × ${ASSESSED_VALUE_RATIO} (${params.property.commercial ? "commercial — no reduction" : "small-residential land 1/3 reduction applies"}).`,
                 land_assessed));
             this.link(new SunkUpfrontExpense(
-                "Assessed Building Value (JP)",
-                `Building 固定資産税評価額 ≈ market × ${ASSESSED_VALUE_RATIO}.`,
-                building_assessed));
+                "Assessed Building Value (JP, initial)",
+                `Building 固定資産税評価額 at construction ≈ market × ${ASSESSED_VALUE_RATIO}, before age depreciation.`,
+                building_assessed_initial));
+            this.link(new SunkUpfrontExpense(
+                "Depreciated Building Value (JP)",
+                `Building assessment after 経年減価補正率 (${params.property.construction}, age ${params.property.building_age}yr → factor ${age_factor.toFixed(3)}).`,
+                building_depreciated));
         } else {
-            // Legacy fallback: flat 0.3% × market value (no split, no reduction).
+            // Legacy fallback: flat 0.3% × market value (no split, no reduction, no age depreciation).
             amount = params.property.value * CITY_PLANNING_RATE;
         }
 

@@ -10,7 +10,7 @@ import { Expense } from "./expense";
  * Japan 法定耐用年数 (statutory useful life) by construction type.
  * 木造 22yr / 軽量鉄骨 27yr / 重量鉄骨 34yr / RC・SRC 47yr.
  */
-function jpStatutoryLife(construction: string): number {
+export function jpStatutoryLife(construction: string): number {
     switch (construction) {
         case "wood": return 22;
         case "light_steel": return 27;
@@ -18,6 +18,26 @@ function jpStatutoryLife(construction: string): number {
         case "rc": return 47;
         default: throw new Error(`Unknown construction: ${construction}. Valid: wood, light_steel, heavy_steel, rc.`);
     }
+}
+
+/**
+ * Japan property-tax 経年減価補正率 — age-depreciation factor for
+ * building assessed value (固定資産税評価額).
+ *
+ * Real municipal tables are tabular with steeper early depreciation
+ * (e.g., wood drops ~10-15%/yr initially, levels at 0.2 by year 15-22).
+ * This is a linear approximation: factor declines from 1.0 to 0.2 over
+ * the construction type's statutory life, floored at 0.2. Defensible
+ * mid-range; refine via municipal tax-advisor lookup if precise.
+ *
+ * Applied only to the building component of property tax assessment.
+ * Land does NOT depreciate via this factor.
+ */
+export function jpBuildingAssessmentFactor(construction: string, age: number): number {
+    const statutory = jpStatutoryLife(construction);
+    const FLOOR = 0.2;
+    const factor = 1 - (age / statutory) * (1 - FLOOR);
+    return Math.max(FLOOR, factor);
 }
 
 /**

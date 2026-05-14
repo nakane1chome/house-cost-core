@@ -20,7 +20,7 @@
 */
 
 import { Params } from "./param";
-import { Expense } from "./expense";
+import { Expense, SunkUpfrontExpense } from "./expense";
 
 const ASSESSED_VALUE_RATIO = 0.7;   // approximate 固定資産税評価額 / market value
 const FIXED_ASSET_RATE = 0.014;     // statutory 1.4%
@@ -44,6 +44,17 @@ export class JapanFixedAssetTax extends Expense {
             // re-purposed here for JP residential-vs-commercial 固定資産税 treatment).
             const land_factor = params.property.commercial ? 1.0 : RESIDENTIAL_LAND_FACTOR;
             amount = (land_assessed * land_factor + building_assessed) * FIXED_ASSET_RATE;
+
+            // Surface the working values as linked-only children (visible in the
+            // breakdown but not aggregated into any parent's sum).
+            this.link(new SunkUpfrontExpense(
+                "Assessed Land Value (JP)",
+                `Land 固定資産税評価額 ≈ market × ${ASSESSED_VALUE_RATIO} (${params.property.commercial ? "commercial — no reduction" : "small-residential land 1/6 reduction applies"}).`,
+                land_assessed));
+            this.link(new SunkUpfrontExpense(
+                "Assessed Building Value (JP)",
+                `Building 固定資産税評価額 ≈ market × ${ASSESSED_VALUE_RATIO}.`,
+                building_assessed));
         } else {
             // Legacy fallback: flat 1.4% × market value (no split, no reduction).
             amount = params.property.value * FIXED_ASSET_RATE;

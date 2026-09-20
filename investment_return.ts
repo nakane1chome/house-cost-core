@@ -13,7 +13,7 @@ import { TaxedAmountWithDeduction, CGTTaxedAmount } from "./taxed_amount";
 import { JpNonResidentRentalTax } from "./jp_non_resident_rental_tax";
 import { AuTaxOnForeignRentalIncome } from "./au_tax_on_foreign_rental";
 import { ForeignIncomeTaxOffsetRental, ForeignIncomeTaxOffsetCgt } from "./foreign_income_tax_offset";
-import { JpNonResidentCgt } from "./jp_non_resident_cgt";
+import { JpSourceCgt } from "./jp_source_cgt";
 
 /**
  * Helper: resolve the investor tax residence with backwards-compat fallback to location.country.
@@ -116,6 +116,8 @@ export class CGTax extends Expense {
             for (let i=0; i < purchaser_cnt; i++) {
                 if (params.purchasers[i].enable) {
                     // AU CGT fires for AU-resident purchasers (with backwards-compat fallback to location.country).
+                    // Non-AU purchasers of JP property are covered by JpSourceCgt below; non-AU purchasers of
+                    // AU property (foreign-resident AU CGT, no discount, non-resident rates) are not modelled.
                     const tax_residence = effectiveTaxResidence(params, params.purchasers[i]);
                     if (tax_residence !== "AUS") continue;
 
@@ -140,15 +142,17 @@ export class CGTax extends Expense {
                 }
             }
 
-            // Cross-jurisdictional JP source CGT (AU resident disposing of JP property):
-            // applies a flat 15.315% to the JP-side gain. The AU-side CGT above also applies
-            // (AU residents are taxed on worldwide gains); FITO bridges by crediting JP CGT
-            // against AU CGT (capped at min of the two).
-            if (params.location.country === "JPN" && hasAuResident(params)) {
-                const jp_cgt = new JpNonResidentCgt(params, asset_appreciation, depreciation, enabled_cnt);
+            // JP source CGT on any JP property: resident or non-resident rates per purchaser,
+            // long/short-term by holding period. For AU-resident purchasers the AU CGT above
+            // also applies (worldwide gains); FITO credits the JP CGT against it, capped at
+            // the AU CGT. For JP-resident purchasers this node is the whole liability.
+            if (params.location.country === "JPN") {
+                const jp_cgt = new JpSourceCgt(params, asset_appreciation, depreciation, enabled_cnt);
                 this.add(jp_cgt);
-                const fito_cgt = new ForeignIncomeTaxOffsetCgt(jp_cgt, total_au_cgt);
-                this.sub(fito_cgt);
+                if (hasAuResident(params)) {
+                    const fito_cgt = new ForeignIncomeTaxOffsetCgt(jp_cgt, total_au_cgt);
+                    this.sub(fito_cgt);
+                }
             }
         }
 

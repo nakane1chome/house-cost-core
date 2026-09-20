@@ -34,7 +34,7 @@ function hasAuResident(params: Params): boolean {
 export class RetainedEquity extends Expense {
     constructor(params: Params, loan_amount: number, property_value: number) {
         super("Retained Equity",
-              "The equity you build in the property through loan repayments (principal paid down).");
+              "Equity in the property at hold-end: the initial equity (value − loan) plus principal paid down.");
 
         // Calculate how much principal has been paid off during hold_term
         const remaining_principal = MortgageInterest.calculateRemainingPrincipal(
@@ -49,12 +49,9 @@ export class RetainedEquity extends Expense {
         // Add the initial deposit/equity
         const initial_equity = property_value - loan_amount;
 
-        // Total equity = initial deposit + principal paid
+        // Total equity at hold-end = initial equity + principal paid (i.e. value − loan balance).
         const retained_equity = initial_equity + principal_paid;
-
-        // At exit, the equity remains
-        const exit_remainder_amount = property_value - retained_equity;
-        this.update_upfront(property_value, exit_remainder_amount);
+        this.update_upfront(retained_equity, 0);
     }
 }
 
@@ -66,19 +63,13 @@ export class AssetAppreciation extends Expense {
         super("Asset Appreciation",
               "Estimated increase in property value based on annual appreciation rate.");
 
-        // Calculate appreciation over hold_term
+        // Compound appreciation over the hold: gain = value × ((1 + rate)^hold − 1).
+        // Appreciation after the sale is not the investor's and is not shown.
         const appreciation_rate = params.economy.appreciation_rate / 100.0;
         const hold_years = params.config.hold_term;
-        const term_years = params.config.loan_term;
-
-        // Compound appreciation: final_value = initial_value * (1 + rate)^years
         const appreciated_value_at_hold = property_value * Math.pow(1 + appreciation_rate, hold_years);
-        const appreciated_value_at_term = property_value * Math.pow(1 + appreciation_rate, term_years);
         const appreciation_gain_at_hold = appreciated_value_at_hold - property_value;
-        const appreciation_gain_at_term = appreciated_value_at_term - property_value;
-
-        const exit_remainder_amount = appreciation_gain_at_term - appreciation_gain_at_hold;
-        this.update_upfront(appreciation_gain_at_term, exit_remainder_amount);
+        this.update_upfront(appreciation_gain_at_hold, 0);
     }
 }
 

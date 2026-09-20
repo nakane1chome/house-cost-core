@@ -85,20 +85,18 @@ export class MortgageInterest extends Expense {
 
     constructor(params: Params, loan_amount: LoanAmount) {
         super("Mortgage Interest",
-              "The interest payments required to service the property loan.")
-        const total_amount = MortgageInterest.calculateTotalInterest(
-            loan_amount.upfront_amount,
-            params.economy.loan_rate,
-            params.config.loan_term
-        );
-        const remainder_amount = MortgageInterest.calculateRemainingInterest(
+              "Interest paid to service the loan during the hold, per the amortisation schedule (front-loaded: early years are mostly interest). " +
+              "Interest that would fall due after the sale is never incurred and is not shown.")
+        // Only the interest actually paid during the hold is a cost; there is no
+        // "remainder" — interest after the sale simply never happens.
+        const paid_during_hold = MortgageInterest.calculateInterestPaid(
             loan_amount.upfront_amount,
             params.economy.loan_rate,
             params.config.loan_term,
             params.config.hold_term
         );
         this.link(loan_amount);
-        this.update_upfront(total_amount, remainder_amount);
+        this.update_upfront(paid_during_hold, 0);
     }
 }
 
@@ -128,12 +126,10 @@ export class MortgagePayoffAtEndOfHoldTerm extends Expense {
             params.config.hold_term
         );
         super(`Mortgage Payoff Amount at ${params.config.hold_term} years`,
-              `The principal remaining at ${params.config.hold_term} years out of ${params.config.loan_term} years.`);
+              `The loan balance still owing at hold-end (${params.config.hold_term} of ${params.config.loan_term} years), repaid from the sale proceeds. Shown as an at-exit amount; not a cost during the hold.`);
 
-        const remainder_ratio =  (params.config.hold_term >= params.config.loan_term) ? 0 : ((params.config.loan_term - params.config.hold_term) / params.config.loan_term);
-        const exit_remainder_amount = remainder_amount * remainder_ratio;
-
-        this.update_upfront(remainder_amount, exit_remainder_amount);
+        // A balance owed at exit: preserved in full (nothing accrues per period).
+        this.update_upfront(remainder_amount, remainder_amount);
     }
 }
 

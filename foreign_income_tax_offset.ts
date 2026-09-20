@@ -19,15 +19,16 @@
 */
 
 import { Expense } from "./expense";
+import { AuTaxOnForeignRentalIncome } from "./au_tax_on_foreign_rental";
 
 export class ForeignIncomeTaxOffsetRental extends Expense {
-    constructor(jp_rental_tax: Expense, au_tax_on_foreign_rental: Expense) {
+    constructor(jp_rental_tax: Expense, au_tax_on_foreign_rental: AuTaxOnForeignRentalIncome) {
         super("Foreign Income Tax Offset (Rental)",
-              "AU FITO crediting JP rental tax against AU tax payable on the same JP rental income.",
+              "AU FITO crediting JP rental tax against AU tax payable on the same JP rental income, capped at the AU tax on the net foreign income.",
               Expense.ONE_YEAR);
 
         const jp = jp_rental_tax.annual();
-        const au = au_tax_on_foreign_rental.annual();
+        const au = au_tax_on_foreign_rental.net_tax_cap;
         const credit = Math.min(jp, au);
 
         this.is_known = true;

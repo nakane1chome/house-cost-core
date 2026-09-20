@@ -496,18 +496,14 @@ export class NetInvestmentIncome extends Expense {
         // These classes self-gate: each is a no-op for same-jurisdiction scenarios.
         const split = params.purchasers.filter(p => p.enable).length || 1;
         if (params.location.country === "JPN" && !params.config.owner_occupier) {
-            // Reuse cost_of_ownership's existing JP property-tax instances rather than
-            // creating duplicates. JP rental tax deducts both 固定資産税 + 都市計画税.
-            const jp_property_tax = new Expense("(JP property taxes deducted)", "", Expense.ONE_YEAR);
-            if (ownership_cost.jp_fixed_asset_tax) jp_property_tax.add(ownership_cost.jp_fixed_asset_tax);
-            if (ownership_cost.jp_city_planning_tax) jp_property_tax.add(ownership_cost.jp_city_planning_tax);
-
+            // Both bases deduct the same things: all ongoing outgoings (JP property taxes,
+            // insurance, body corp), mortgage interest over the hold, and depreciation.
             this.jp_non_resident_rental_tax = new JpNonResidentRentalTax(
                 params, this.rental_income.rental_income, this.rental_income.rental_fee,
-                depreciation, jp_property_tax, split);
+                ownership_cost.cost_expenses, ownership_cost.loan_interest, depreciation, split);
             this.au_tax_on_foreign_rental = new AuTaxOnForeignRentalIncome(
                 params, this.rental_income.rental_income, this.rental_income.rental_fee,
-                this.tax_deductible_expenses, depreciation, split);
+                ownership_cost.cost_expenses, ownership_cost.loan_interest, depreciation, split);
             this.fito_rental = new ForeignIncomeTaxOffsetRental(
                 this.jp_non_resident_rental_tax, this.au_tax_on_foreign_rental);
 

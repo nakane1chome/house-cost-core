@@ -5,7 +5,8 @@
    Applies to JP property (location.country === "JPN") held by non-JP-resident
    investors. JP non-resident income tax uses the national progressive brackets
    from tax_config.JAPAN_TAX (5%–45%), plus a 2.1% reconstruction surcharge
-   (復興特別所得税) computed on the income-tax amount.
+   (復興特別所得税) computed on the income-tax amount. Non-residents pay no
+   inhabitant tax on this income.
 
    The 20.42% non-resident withholding on JP-corporate-tenant rent is the
    in-year cash-flow mechanic; this class models the final liability on
@@ -13,8 +14,9 @@
    output. The withholding is creditable against final tax — net effect is
    captured.
 
-   JP-allowable deductions (depreciation, JP property tax, mgmt fees) reduce
-   the JP-side taxable income.
+   JP-allowable deductions (必要経費) reduce the JP-side taxable income:
+   management fees, all ongoing outgoings (固定資産税, 都市計画税, insurance,
+   管理費/修繕積立金), mortgage interest, and depreciation.
 */
 
 import { Params } from "./param";
@@ -27,11 +29,13 @@ export class JpNonResidentRentalTax extends Expense {
     constructor(params: Params,
                 gross_rent: Expense,
                 fees: Expense,
+                cost_expenses: Expense,
+                loan_interest: Expense,
                 depreciation: Expense,
-                jp_property_tax: Expense,
                 split: number) {
         super("JP Non-Resident Rental Tax",
-              "JP source income tax on rental income, paid in Japan. Progressive brackets + 2.1% reconstruction surcharge.",
+              "JP source income tax on rental income, paid in Japan. Progressive brackets + 2.1% reconstruction surcharge, " +
+              "after 必要経費 (fees, outgoings, interest, depreciation).",
               Expense.ONE_YEAR);
 
         if (params.config.owner_occupier || params.location.country !== "JPN") {
@@ -40,22 +44,24 @@ export class JpNonResidentRentalTax extends Expense {
             return;
         }
 
+        const hold = params.config.hold_term;
+        const net = gross_rent.annual() - fees.annual() - cost_expenses.annual()
+            - loan_interest.periodic(hold, Expense.ONE_YEAR)
+            - depreciation.periodic(hold, Expense.ONE_YEAR);
+
         let total_tax = 0;
         for (const purchaser of params.purchasers) {
             if (!purchaser.enable) continue;
             const tax_residence = purchaser.tax_residence || params.location.country;
-            // Skip JP-resident purchasers — they go through TaxOnRentalIncome (which currently uses static AU
-            // config; a future change can wire JP MTR for JP-resident purchasers via MarginalTaxFor("JPN", ...)).
+            // JP-resident purchasers are taxed through the domestic path (TaxOnRentalIncome).
             if (tax_residence === "JPN") continue;
 
-            // JP-side net rental: gross − JP-allowable deductions (fees + depreciation + JP property tax)
-            const jp_taxable = (gross_rent.annual() - fees.annual() - depreciation.annual() - jp_property_tax.annual()) / split;
+            const jp_taxable = net / split;
             if (jp_taxable <= 0) continue;
-
+            // Non-resident: JP-source income is the only income in the JP return → base income 0.
             const tax_result = TaxBracket.MarginalTaxFor("JPN", 0, jp_taxable);
             total_tax += tax_result.amount * RECONSTRUCTION_SURCHARGE;
         }
-
         this.is_known = true;
         this.update_repeating(total_tax);
     }

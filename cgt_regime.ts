@@ -1,39 +1,68 @@
 /* Copyright(c) 2014-2026 Phil Mulholland (www.shincbm.com)
    SPDX-License-Identifier: MIT
-   Housing Cost Model — AU CGT Regime Configuration
+   Housing Cost Model — AU CGT reform timing
 
-   FY26 (pre-reform): 50% discount on gains held >12mo, taxed at MTR.
-   FY27 (post-reform anticipated): no discount, taxed at max(MTR, 30%).
+   2026–27 Budget (12 May 2026): from 1 July 2027 the 50% CGT discount for
+   individuals, trusts and partnerships is replaced by cost-base indexation
+   plus a 30% minimum tax on the real gain. Transitional rule: gains accrued
+   before 1 July 2027 keep the 50% discount; gains accrued from that date are
+   taxed under the new rules. Taxpayers may time-apportion the gain across
+   the reform date rather than obtain a valuation.
 
-   The FY27 shape models the May 2026 budget speculation — exact legislation
-   not yet final. See docs/taxation_planning.md for policy context.
+   The model applies exactly that split. Because there is no CPI input, the
+   post-reform slice is taxed on the full nominal gain (no indexation) at
+   max(MTR, 30%) — a conservative working assumption until the legislated
+   form is known. Not yet legislated as at Sep 2026.
 */
 
-export interface CgtRegimeConfig {
-    name: string;
-    discount_rate: number;
-    flat_rate_floor: number;
-    description: string;
+import { Params } from "./param";
+
+/** Announced commencement of the reformed CGT rules. */
+export const CGT_REFORM_START = "2027-07-01";
+
+/** Pre-reform: 50% discount on gains held > 12 months, taxed at MTR. */
+export const CGT_PRE_REFORM = { discount: 0.5, floor: 0 };
+
+/** Post-reform working assumption: no discount, taxed at max(MTR, 30%). */
+export const CGT_POST_REFORM = { discount: 0, floor: 0.30 };
+
+function parseIsoDate(s: string): Date | null {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (!m) return null;
+    const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    return isNaN(d.getTime()) ? null : d;
 }
 
-export const CGT_REGIME_FY26: CgtRegimeConfig = {
-    name: "fy26",
-    discount_rate: 0.5,
-    flat_rate_floor: 0,
-    description: "FY26 (pre-reform): 50% discount on gains held >12mo, taxed at MTR. Applies to assets acquired before 1 July 2026 (grandfathered)."
-};
+/** Purchase date from params; empty or unparseable → today (UTC midnight). */
+export function resolvePurchaseDate(params: Params): Date {
+    const parsed = params.config.purchase_date ? parseIsoDate(params.config.purchase_date) : null;
+    if (parsed) return parsed;
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
 
-export const CGT_REGIME_FY27: CgtRegimeConfig = {
-    name: "fy27",
-    discount_rate: 0,
-    flat_rate_floor: 0.30,
-    description: "FY27 (post-reform): no discount; gain taxed at max(MTR, 30%). Applies to assets acquired on or after 1 July 2026."
-};
+/** purchase + hold_term years (calendar arithmetic, UTC). */
+export function saleDate(purchase: Date, hold_term: number): Date {
+    const whole = Math.floor(hold_term);
+    const frac = hold_term - whole;
+    const d = new Date(Date.UTC(purchase.getUTCFullYear() + whole, purchase.getUTCMonth(), purchase.getUTCDate()));
+    if (frac > 0) d.setTime(d.getTime() + frac * 365.25 * 86400000);
+    return d;
+}
 
-export function getCgtRegime(name: string): CgtRegimeConfig {
-    switch (name) {
-        case "fy26": return CGT_REGIME_FY26;
-        case "fy27": return CGT_REGIME_FY27;
-        default: throw new Error(`Unknown CGT regime: ${name}. Valid: fy26, fy27.`);
-    }
+/**
+ * Share of the holding period that falls on or after the reform date,
+ * time-apportioned, clamped to [0, 1]. 0 → wholly pre-reform; 1 → wholly post.
+ */
+export function reformFraction(purchase: Date, sale: Date, reform: string = CGT_REFORM_START): number {
+    const r = parseIsoDate(reform);
+    if (!r) return 0;
+    const held = sale.getTime() - purchase.getTime();
+    if (held <= 0) return sale.getTime() >= r.getTime() ? 1 : 0;
+    const post = sale.getTime() - Math.max(purchase.getTime(), r.getTime());
+    return Math.min(1, Math.max(0, post / held));
+}
+
+export function isoDate(d: Date): string {
+    return d.toISOString().slice(0, 10);
 }

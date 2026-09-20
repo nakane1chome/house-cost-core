@@ -10,7 +10,6 @@ import { Depreciation } from "./depreciation";
 import { TaxBracket } from "./marginal_tax";
 import { CostOfOwnership } from "./cost_of_ownership";
 import { TaxedAmountWithDeduction, CGTTaxedAmount } from "./taxed_amount";
-import { CGTTaxedAmountFy27 } from "./cgt_taxed_amount_fy27";
 import { JpNonResidentRentalTax } from "./jp_non_resident_rental_tax";
 import { AuTaxOnForeignRentalIncome } from "./au_tax_on_foreign_rental";
 import { ForeignIncomeTaxOffsetRental, ForeignIncomeTaxOffsetCgt } from "./foreign_income_tax_offset";
@@ -93,7 +92,7 @@ export class InitialEquity extends Expense {
 
 export class CGTax extends Expense {
 
-    public cgt_tax : Array<Expense>;
+    public cgt_tax : Array<Expense>;   // CGTTaxedAmount (AU) and, for JP property, JpNonResidentCgt / FITO nodes
     
     constructor(params: Params, 
                 asset_appreciation: AssetAppreciation,
@@ -112,9 +111,6 @@ export class CGTax extends Expense {
         }
 
         if (!params.config.owner_occupier) {
-            const CgtCtor: any = params.config.cgt_regime === "fy27"
-                ? CGTTaxedAmountFy27
-                : CGTTaxedAmount;
             let j=0;
             let total_au_cgt = 0;
             for (let i=0; i < purchaser_cnt; i++) {
@@ -123,7 +119,7 @@ export class CGTax extends Expense {
                     const tax_residence = effectiveTaxResidence(params, params.purchasers[i]);
                     if (tax_residence !== "AUS") continue;
 
-                    this.cgt_tax[j] = new CgtCtor(params,
+                    this.cgt_tax[j] = new CGTTaxedAmount(params,
                                                   `Appreciation, purchaser ${i}`,
                                                   params.purchasers[i],
                                                   asset_appreciation,
@@ -132,7 +128,7 @@ export class CGTax extends Expense {
                     total_au_cgt += -this.cgt_tax[j].exit_remainder_amount;
                     j+=1;
                     if (depreciation != undefined) {
-                        this.cgt_tax[j] = new CgtCtor(params,
+                        this.cgt_tax[j] = new CGTTaxedAmount(params,
                                                       `Depreciation, purchaser ${i}`,
                                                       params.purchasers[i],
                                                       depreciation,

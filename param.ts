@@ -45,7 +45,8 @@ export class Config {
     new_home = false;
     first_home = false;
     owner_occupier=true;
-    cgt_regime = "fy27";                  // "fy26" (50% discount + MTR; grandfathered pre-1-July-2026 acquisitions) | "fy27" (no discount + max(MTR, 30%); post-1-July-2026 acquisitions)
+    cgt_reform = true;                    // apply the announced post-1-July-2027 CGT rules (no discount, max(MTR, 30%)) to the share of the gain accrued after that date; false → 50% discount throughout
+    purchase_date = "";                   // ISO YYYY-MM-DD; "" → today. With hold_term it fixes the sale date and hence the pre/post-reform split of the gain
 }
 export class NewHome {
     build_cost= 0;

@@ -536,19 +536,20 @@ export class InvestmentReturn extends Expense {
     constructor(params: Params, loan_amount: number, property_value: number,
                 ownership_cost: CostOfOwnership) {
         super("Investment Return",
-              "Total return from property investment including equity gains, rental income, and tax benefits.");
+              "Total return over the hold: net investment income + equity return − principal repaid from cash. " +
+              "Principal appears in Retained Equity as equity built and is cash paid out during the hold, so it is netted here; " +
+              "what remains is net income + appreciation − CGT − sunk purchase costs.");
 
-        // NOTE - this needs to be changed to remove depreciation from sum.
-        // NOTE - depreciation needs to be used only as tax benefit.
-
-
-        // Depreciation needs to be used to change the CGT calculation.
+        // Depreciation is used only as a tax deduction (GrossTaxBenefits) and to adjust the CGT cost base.
         this.depreciation = new Depreciation(params);
         this.investment_income = new NetInvestmentIncome(params, loan_amount, ownership_cost, this.depreciation);
         this.equity_return = new EquityReturn(params, loan_amount, property_value, ownership_cost, this.depreciation, this.investment_income);
 
         this.add(this.investment_income);
         this.add(this.equity_return);
+        // Principal repaid during the hold: counted as equity in RetainedEquity, but it was cash out
+        // (cost_of_ownership.cash_flow). Net it so the root is a true return on cash invested.
+        this.sub(ownership_cost.loan_principle);
 
 
     }

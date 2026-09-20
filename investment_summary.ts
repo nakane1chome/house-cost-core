@@ -60,6 +60,7 @@ export class InvestmentSummary {
         const total_principal = cost.loan_principle.accumulated(hold_term);
         this.annual_net_cf = hold_term > 0 ? (total_net_income - total_principal) / hold_term : 0;
 
+        // Identical to ret.accumulated(hold_term): income + equity − principal repaid.
         this.total_return = this.equity_at_exit + (this.annual_net_cf * hold_term);
         this.roi = this.total_invested > 0 ? this.total_return / this.total_invested : 0;
         this.cagr = (this.roi > -1 && hold_term > 0)

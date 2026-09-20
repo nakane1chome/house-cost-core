@@ -205,8 +205,13 @@ export class EquityReturn extends Expense {
 
         this.sub(this.initial_equity);
         if ((ownership_cost != undefined) && (investment_income_to_pay_principal != undefined) ) {
-            // FeedEquity calculates cash shortfall: (interest + principal + expenses) - rental_income
-            // Note: investment_income_to_pay_principal is NetInvestmentIncome which has rental_income as a component
+            // FeedEquity shows the cash shortfall the owner must inject each year:
+            // (interest + principal + expenses) − rental income. It is LINKED, not
+            // subtracted: rent, interest and expenses are already netted in
+            // NetInvestmentIncome, and principal is already cash-out in cash_flow
+            // and equity-in via RetainedEquity. Subtracting it here as well (as the
+            // code did while it happened to read zero) would count the shortfall twice
+            // in InvestmentReturn = NetInvestmentIncome + EquityReturn.
             const net_investment_income = investment_income_to_pay_principal as unknown as NetInvestmentIncome;
             this.feed_equity = new FeedEquity(
                 params,
@@ -215,7 +220,7 @@ export class EquityReturn extends Expense {
                 ownership_cost.loan_principle,
                 ownership_cost.cost_expenses
             );
-            this.sub(this.feed_equity);
+            this.link(this.feed_equity);
         }
 
 

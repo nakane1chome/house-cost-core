@@ -20,7 +20,7 @@ import { InvestmentReturn } from "./investment_return";
 export class InvestmentSummary {
 
     // Hold-term cumulative (read directly from library aggregators)
-    public total_invested: number;        // deposit + transaction costs (out-of-pocket equity)
+    public total_invested: number;        // the buyer's cash in = deposit. Transaction costs are rolled into the loan by LoanAmount, so they are not out-of-pocket.
     public total_rental: number;           // cumulative net rental income over hold
     public total_cash_outflow: number;     // cumulative cash out over hold
     public total_tax_benefit: number;      // cumulative tax benefit over hold
@@ -30,7 +30,8 @@ export class InvestmentSummary {
     public annual_rental: number;
     public annual_cash_outflow: number;
     public annual_tax_benefit: number;
-    public annual_net_cf: number;          // = annual_rental - annual_cash_outflow + annual_tax_benefit
+    public annual_net_cf: number;          // = net investment income − principal repaid, per year. Equals annual_rental − annual_cash_outflow + annual_tax_benefit for a
+                                           //   same-jurisdiction lead; additionally nets the cross-jurisdiction tax nodes (JP rental tax, AU tax on foreign rental, FITO).
 
     // Total return + ratios
     public total_return: number;           // = equity_at_exit + (annual_net_cf * hold_term)
@@ -43,7 +44,7 @@ export class InvestmentSummary {
     constructor(loan: LoanAmount, cost: CostOfOwnership, ret: InvestmentReturn, hold_term: number) {
         this.hold_term = hold_term;
 
-        this.total_invested = loan.deposit.upfront_amount + loan.transaction_costs.upfront_amount;
+        this.total_invested = loan.deposit.upfront_amount;
         this.total_rental = ret.investment_income.rental_income.accumulated(hold_term);
         this.total_cash_outflow = cost.cash_flow.accumulated(hold_term);
         this.total_tax_benefit = ret.investment_income.tax_benefits.accumulated(hold_term);
@@ -52,7 +53,12 @@ export class InvestmentSummary {
         this.annual_rental = hold_term > 0 ? this.total_rental / hold_term : 0;
         this.annual_cash_outflow = hold_term > 0 ? this.total_cash_outflow / hold_term : 0;
         this.annual_tax_benefit = hold_term > 0 ? this.total_tax_benefit / hold_term : 0;
-        this.annual_net_cf = this.annual_rental - this.annual_cash_outflow + this.annual_tax_benefit;
+        // Net investment income already nets rent, tax on rent, deductible expenses (interest +
+        // outgoings), tax benefits and any cross-jurisdiction tax nodes; principal is the only
+        // remaining cash item (it is equity, not income, so it lives in cash_flow, not income).
+        const total_net_income = ret.investment_income.accumulated(hold_term);
+        const total_principal = cost.loan_principle.accumulated(hold_term);
+        this.annual_net_cf = hold_term > 0 ? (total_net_income - total_principal) / hold_term : 0;
 
         this.total_return = this.equity_at_exit + (this.annual_net_cf * hold_term);
         this.roi = this.total_invested > 0 ? this.total_return / this.total_invested : 0;

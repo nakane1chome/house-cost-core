@@ -112,12 +112,10 @@ export class MortgageEquityAtEndOfHoldTerm extends Expense {
             params.config.hold_term
         );
         super(`Mortgage Paid Principal Amount at ${params.config.hold_term} years`,
-              `The principal payed off at ${params.config.hold_term} years out of ${params.config.loan_term} years.`);
+              `The principal paid off during the ${params.config.hold_term}-year hold (of a ${params.config.loan_term}-year loan), per the amortisation schedule.`);
 
-        const remainder_ratio =  (params.config.hold_term >= params.config.loan_term) ? 0 : ((params.config.loan_term - params.config.hold_term) / params.config.loan_term);
-        const exit_remainder_amount = remainder_amount * remainder_ratio;
-
-        this.update_upfront(remainder_amount, exit_remainder_amount);
+        // All of this principal is cash paid out during the hold; nothing remains at exit.
+        this.update_upfront(remainder_amount, 0);
     }
 }
 
@@ -152,16 +150,14 @@ export class EquityInPropertyAtTerm extends Expense {
 export class MortgagePrincipal extends Expense {
     constructor(params: Params, loan_amount: LoanAmount) {
         super("Mortgage Principal",
-              "The amount of money that has been borrowed and needs to be repaid.");
-        // NOTE - this remainder should never include appreciation/deprecation.
-        // TODO - should this be calculated based on non linear repayment schedule with interest payed earlier.?
-        const equity = new MortgageEquityAtEndOfHoldTerm(params, loan_amount);
-        const principal = new MortgagePayoffAtEndOfHoldTerm(params, loan_amount);
-        
-        this.add(equity);
-        this.add(principal);
-        this.link(new EquityInPropertyAtTerm(equity, loan_amount));
-            
+              "Principal repaid during the hold, per the amortisation schedule (interest is front-loaded, so this is well below a straight-line share of the loan). " +
+              "The balance still owing at hold-end is repaid from the sale proceeds and is shown linked, not summed.");
+        const paid = new MortgageEquityAtEndOfHoldTerm(params, loan_amount);
+        const payoff = new MortgagePayoffAtEndOfHoldTerm(params, loan_amount);
+
+        this.add(paid);
+        this.link(payoff);
+        this.link(new EquityInPropertyAtTerm(paid, loan_amount));
     }
 }
 

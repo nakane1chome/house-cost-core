@@ -410,11 +410,13 @@ export class FeedEquity extends Expense {
                 loan_principal: Expense,
                 ongoing_expenses: Expense) {
 
-        // Calculate actual cash flows
-        const rental_cash_in = rental_income.annual();
-        const interest_out = loan_interest.annual();
-        const principal_out = loan_principal.annual();
-        const expenses_out = ongoing_expenses.annual();
+        // Actual cash flows, averaged over the hold (interest and principal are
+        // upfront/exit-remainder nodes, so annual() would read 0 for them).
+        const hold = params.config.hold_term;
+        const rental_cash_in = rental_income.periodic(hold, Expense.ONE_YEAR);
+        const interest_out = loan_interest.periodic(hold, Expense.ONE_YEAR);
+        const principal_out = loan_principal.periodic(hold, Expense.ONE_YEAR);
+        const expenses_out = ongoing_expenses.periodic(hold, Expense.ONE_YEAR);
         const total_cash_out = interest_out + principal_out + expenses_out;
         const cash_shortfall = total_cash_out - rental_cash_in;
 

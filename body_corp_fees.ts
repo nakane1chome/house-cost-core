@@ -6,8 +6,8 @@
    - AU strata commercial / residential — body corporate quarterly levies + sinking fund
    - JP 区分マンション — 管理費 + 修繕積立金 (use the sum as the annual figure)
 
-   Consumed only when community_title=true AND body_corp_fees_annual > 0; otherwise
-   the cost line is zero and not added to the cost_expenses aggregator.
+   Non-zero only when community_title=true AND body_corp_fees_annual > 0; otherwise
+   the node still sits in cost_expenses but carries zero.
 */
 
 import { Expense } from "./expense";

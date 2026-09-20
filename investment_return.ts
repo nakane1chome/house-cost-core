@@ -92,7 +92,7 @@ export class InitialEquity extends Expense {
 
 export class CGTax extends Expense {
 
-    public cgt_tax : Array<Expense>;   // CGTTaxedAmount (AU) and, for JP property, JpNonResidentCgt / FITO nodes
+    public cgt_tax : Array<Expense>;   // CGTTaxedAmount (AU) and, for JP property, JpSourceCgt / FITO nodes
     
     constructor(params: Params, 
                 asset_appreciation: AssetAppreciation,

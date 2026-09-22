@@ -3,12 +3,13 @@
    Housing Cost Model
 */
 
-import { Expense,  UpfrontExpense } from "./expense";
+import { Expense, UpfrontExpense, SunkUpfrontExpense, PreservedUpfrontExpense } from "./expense";
 import { Params } from "./param";
 import { GrantAmount } from "./grant_amount";
 import { StampDuty } from "./stamp_duty";
 import { JapanContractStampDuty,  JapanPropertyAcquisitionTax, JapanTitleRegistrationStampDuty } from "./japan_stamp_duty";
 import { TransferReg } from "./transfer_reg";
+import { CommercialGST } from "./commercial_gst";
 
 export class TransactionCosts extends Expense {
 
@@ -25,17 +26,18 @@ export class TransactionCosts extends Expense {
             this.sub(new GrantAmount(params));
             this.add(new StampDuty(params) );
             this.add(new TransferReg(params));
+            if (params.property.commercial) {
+                this.add(new CommercialGST(params));
+            }
             if (params.purchase_costs.conveyancing > 0) {
-                this.add(new UpfrontExpense("Conveyancing",
-                    "Legal fees for property transfer.",
-                    params.purchase_costs.conveyancing,
-                    params.config.loan_term, params.config.hold_term));
+                this.add(new SunkUpfrontExpense("Conveyancing",
+                    "Legal fees for property transfer (sunk at settlement).",
+                    params.purchase_costs.conveyancing));
             }
             if (params.purchase_costs.inspections > 0) {
-                this.add(new UpfrontExpense("Building Inspections",
-                    "Pre-purchase property inspections.",
-                    params.purchase_costs.inspections,
-                    params.config.loan_term, params.config.hold_term));
+                this.add(new SunkUpfrontExpense("Building Inspections",
+                    "Pre-purchase property inspections (sunk at settlement).",
+                    params.purchase_costs.inspections));
             }
         }
         
@@ -71,7 +73,7 @@ export class LoanAmount extends Expense {
     //public transfer_reg :TransferReg;
     
     public value: UpfrontExpense;
-    public deposit: UpfrontExpense;
+    public deposit: PreservedUpfrontExpense;
     public transaction_costs: TransactionCosts;
 
     constructor(params: Params) {
@@ -84,11 +86,9 @@ export class LoanAmount extends Expense {
                                          params.config.loan_term,
                                          params.config.hold_term);
         
-        this.deposit = new UpfrontExpense("Deposit",
-                                           "Loan deposit",
-                                           params.config.deposit,
-                                           params.config.loan_term,
-                                           params.config.hold_term);
+        this.deposit = new PreservedUpfrontExpense("Deposit",
+                                           "Loan deposit — buyer's equity contribution; remains intact at exit (property-value changes are modelled separately).",
+                                           params.config.deposit);
         
         this.transaction_costs = new TransactionCosts(params);
 

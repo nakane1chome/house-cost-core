@@ -7,10 +7,62 @@ import { Params } from "./param";
 import { Expense } from "./expense";
 
 /**
+ * Japan 法定耐用年数 (statutory useful life) by construction type.
+ * 木造 22yr / 軽量鉄骨 27yr / 重量鉄骨 34yr / RC・SRC 47yr.
+ */
+export function jpStatutoryLife(construction: string): number {
+    switch (construction) {
+        case "wood": return 22;
+        case "light_steel": return 27;
+        case "heavy_steel": return 34;
+        case "rc": return 47;
+        default: throw new Error(`Unknown construction: ${construction}. Valid: wood, light_steel, heavy_steel, rc.`);
+    }
+}
+
+/**
+ * Japan property-tax 経年減価補正率 — age-depreciation factor for
+ * building assessed value (固定資産税評価額).
+ *
+ * Real municipal tables are tabular with steeper early depreciation
+ * (e.g., wood drops ~10-15%/yr initially, levels at 0.2 by year 15-22).
+ * This is a linear approximation: factor declines from 1.0 to 0.2 over
+ * the construction type's statutory life, floored at 0.2. Defensible
+ * mid-range; refine via municipal tax-advisor lookup if precise.
+ *
+ * Applied only to the building component of property tax assessment.
+ * Land does NOT depreciate via this factor.
+ */
+export function jpBuildingAssessmentFactor(construction: string, age: number): number {
+    const statutory = jpStatutoryLife(construction);
+    const FLOOR = 0.2;
+    const factor = 1 - (age / statutory) * (1 - FLOOR);
+    return Math.max(FLOOR, factor);
+}
+
+/**
+ * Japan used-building remaining useful life (定額法).
+ * - age < statutory_life:  (statutory - age) + age × 0.2
+ * - age ≥ statutory_life:  statutory × 0.2
+ * Rounded down, minimum 2 years.
+ */
+function jpUsefulLife(construction: string, age: number): number {
+    const statutory = jpStatutoryLife(construction);
+    let life: number;
+    if (age < statutory) {
+        life = Math.floor((statutory - age) + age * 0.2);
+    } else {
+        life = Math.floor(statutory * 0.2);
+    }
+    return life < 2 ? 2 : life;
+}
+
+/**
  * Represents building depreciation for tax purposes
  *
  * Australia: Building write-off at 2.5% per year for capital works (buildings constructed after 1987)
- * Japan: Building depreciation varies by structure type (typically 22-47 years useful life)
+ * Japan: 定額法 over 法定耐用年数 with used-building reduction formula.
+ *        Construction type from params.property.construction; age from params.property.building_age.
  *
  * Note: Only applies to investment properties, not owner-occupied
  */
@@ -41,13 +93,18 @@ export class BuildingDepreciation extends Expense {
             // Applies to buildings constructed after 15 September 1987
             annual_depreciation = building_value * 0.025;
         } else if (params.location.country === "JPN") {
-            // Japan: Depreciation depends on structure type
-            // Concrete: 47 years (2.13% per year)
-            // Steel frame: 34 years (2.94% per year)
-            // Wood: 22 years (4.55% per year)
-            // Default to concrete for conservative estimate
-            const useful_life = 47; // years
-            annual_depreciation = building_value / useful_life;
+            // Japan: 定額法 over 法定耐用年数 with used-building formula.
+            // Construction enum (params.property.construction) selects statutory life;
+            // params.property.building_age applies the simplified used-building reduction.
+            //
+            // Library convention is a flat per-year deduction over the hold period.
+            // Real JP tax front-loads the full deduction across `useful_life` years
+            // then drops to zero — but the engine produces hold-aggregate figures, so
+            // we cap at hold_term to prevent over-deducting when useful_life < hold.
+            // Total deduction over hold ≈ building_value when hold ≥ useful_life.
+            const useful_life = jpUsefulLife(params.property.construction, params.property.building_age);
+            const effective_period = Math.max(useful_life, params.config.hold_term);
+            annual_depreciation = building_value / effective_period;
         }
 
         this.is_known = true;
@@ -102,20 +159,66 @@ export class FixturesDepreciation extends Expense {
 }
 
 /**
+ * Capital improvement / renovation depreciation as a separate account.
+ *
+ * Under JP 資本的支出 practice, renovation spend is depreciated as a distinct
+ * 償却資産 over its own useful life rather than merging into the host
+ * building's residual basis. This matters most when the host building's
+ * remaining useful life is short (used 木造) and the renovation is recent.
+ *
+ * useful_life is supplied explicitly per lead via params.property.renovation_useful_life.
+ * AU leads typically roll renovation into building_value under Div 43 instead;
+ * the field is available but conventionally unused on the AU side.
+ *
+ * As with BuildingDepreciation, the annual figure is capped at
+ * renovation_value / max(useful_life, hold_term) so the hold-aggregate
+ * matches the renovation cost.
+ */
+export class RenovationDepreciation extends Expense {
+    constructor(params: Params) {
+        super("Renovation Depreciation",
+              "Tax-deductible depreciation on capital improvements (separate account from host building).");
+
+        if (params.config.owner_occupier) {
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
+        const value = params.property.renovation_value || 0;
+        const useful_life = params.property.renovation_useful_life || 0;
+        if (value <= 0 || useful_life <= 0) {
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
+        const effective_period = Math.max(useful_life, params.config.hold_term);
+        const annual_depreciation = value / effective_period;
+
+        this.is_known = true;
+        this.update_repeating(annual_depreciation);
+    }
+}
+
+/**
  * Total depreciation available for tax deduction
  */
 export class Depreciation extends Expense {
     public building: BuildingDepreciation;
     public fixtures: FixturesDepreciation;
+    public renovation: RenovationDepreciation;
 
     constructor(params: Params) {
         super("Depreciation",
-              "Total tax-deductible depreciation on building and fixtures (investment properties only).");
+              "Total tax-deductible depreciation on building, fixtures, and renovations (investment properties only).");
 
         this.building = new BuildingDepreciation(params);
         this.fixtures = new FixturesDepreciation(params);
+        this.renovation = new RenovationDepreciation(params);
 
         this.add(this.building);
         this.add(this.fixtures);
+        this.add(this.renovation);
     }
 }

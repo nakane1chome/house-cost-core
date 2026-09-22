@@ -29,7 +29,13 @@ export class StampDuty extends Expense {
         let amount = 0;
         switch (params.location.state) {
             case "SA" :
-                amount = StampDuty.calculateSA(params.property.value);
+                if (params.property.commercial) {
+                    // SA abolished commercial stamp duty 1 July 2018
+                    // Stamp Duties (Commercial Real Property) Amendment Act 2015 (SA)
+                    amount = 0;
+                } else {
+                    amount = StampDuty.calculateSA(params.property.value);
+                }
                 this.update_upfront(amount, 0);
         }
     }

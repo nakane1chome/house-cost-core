@@ -10,6 +10,23 @@ import { Depreciation } from "./depreciation";
 import { TaxBracket } from "./marginal_tax";
 import { CostOfOwnership } from "./cost_of_ownership";
 import { TaxedAmountWithDeduction, CGTTaxedAmount } from "./taxed_amount";
+import { JpNonResidentRentalTax } from "./jp_non_resident_rental_tax";
+import { AuTaxOnForeignRentalIncome } from "./au_tax_on_foreign_rental";
+import { ForeignIncomeTaxOffsetRental, ForeignIncomeTaxOffsetCgt } from "./foreign_income_tax_offset";
+import { JpSourceCgt } from "./jp_source_cgt";
+
+/**
+ * Helper: resolve the investor tax residence with backwards-compat fallback to location.country.
+ * Returns the effective tax-residence country code ("AUS" | "JPN" | etc.).
+ */
+function effectiveTaxResidence(params: Params, purchaser: { tax_residence: string }): string {
+    return purchaser.tax_residence || params.location.country;
+}
+
+/** Returns true if any enabled purchaser is AU tax-resident. */
+function hasAuResident(params: Params): boolean {
+    return params.purchasers.some(p => p.enable && effectiveTaxResidence(params, p) === "AUS");
+}
 
 /**
  * Represents the equity retained in the property
@@ -17,7 +34,7 @@ import { TaxedAmountWithDeduction, CGTTaxedAmount } from "./taxed_amount";
 export class RetainedEquity extends Expense {
     constructor(params: Params, loan_amount: number, property_value: number) {
         super("Retained Equity",
-              "The equity you build in the property through loan repayments (principal paid down).");
+              "Equity in the property at hold-end: the initial equity (value − loan) plus principal paid down.");
 
         // Calculate how much principal has been paid off during hold_term
         const remaining_principal = MortgageInterest.calculateRemainingPrincipal(
@@ -32,12 +49,9 @@ export class RetainedEquity extends Expense {
         // Add the initial deposit/equity
         const initial_equity = property_value - loan_amount;
 
-        // Total equity = initial deposit + principal paid
+        // Total equity at hold-end = initial equity + principal paid (i.e. value − loan balance).
         const retained_equity = initial_equity + principal_paid;
-
-        // At exit, the equity remains
-        const exit_remainder_amount = property_value - retained_equity;
-        this.update_upfront(property_value, exit_remainder_amount);
+        this.update_upfront(retained_equity, 0);
     }
 }
 
@@ -49,19 +63,13 @@ export class AssetAppreciation extends Expense {
         super("Asset Appreciation",
               "Estimated increase in property value based on annual appreciation rate.");
 
-        // Calculate appreciation over hold_term
+        // Compound appreciation over the hold: gain = value × ((1 + rate)^hold − 1).
+        // Appreciation after the sale is not the investor's and is not shown.
         const appreciation_rate = params.economy.appreciation_rate / 100.0;
         const hold_years = params.config.hold_term;
-        const term_years = params.config.loan_term;
-
-        // Compound appreciation: final_value = initial_value * (1 + rate)^years
         const appreciated_value_at_hold = property_value * Math.pow(1 + appreciation_rate, hold_years);
-        const appreciated_value_at_term = property_value * Math.pow(1 + appreciation_rate, term_years);
         const appreciation_gain_at_hold = appreciated_value_at_hold - property_value;
-        const appreciation_gain_at_term = appreciated_value_at_term - property_value;
-
-        const exit_remainder_amount = appreciation_gain_at_term - appreciation_gain_at_hold;
-        this.update_upfront(appreciation_gain_at_term, exit_remainder_amount);
+        this.update_upfront(appreciation_gain_at_hold, 0);
     }
 }
 
@@ -75,7 +83,7 @@ export class InitialEquity extends Expense {
 
 export class CGTax extends Expense {
 
-    public cgt_tax : Array<CGTTaxedAmount>;
+    public cgt_tax : Array<Expense>;   // CGTTaxedAmount (AU) and, for JP property, JpSourceCgt / FITO nodes
     
     constructor(params: Params, 
                 asset_appreciation: AssetAppreciation,
@@ -95,23 +103,46 @@ export class CGTax extends Expense {
 
         if (!params.config.owner_occupier) {
             let j=0;
+            let total_au_cgt = 0;
             for (let i=0; i < purchaser_cnt; i++) {
                 if (params.purchasers[i].enable) {
+                    // AU CGT fires for AU-resident purchasers (with backwards-compat fallback to location.country).
+                    // Non-AU purchasers of JP property are covered by JpSourceCgt below; non-AU purchasers of
+                    // AU property (foreign-resident AU CGT, no discount, non-resident rates) are not modelled.
+                    const tax_residence = effectiveTaxResidence(params, params.purchasers[i]);
+                    if (tax_residence !== "AUS") continue;
+
                     this.cgt_tax[j] = new CGTTaxedAmount(params,
-                                                         `Appreciation, purchaser ${i}`,
-                                                         params.purchasers[i],
-                                                         asset_appreciation,
-                                                         enabled_cnt);
+                                                  `Appreciation, purchaser ${i}`,
+                                                  params.purchasers[i],
+                                                  asset_appreciation,
+                                                  enabled_cnt);
                     this.add(this.cgt_tax[j]);
+                    total_au_cgt += -this.cgt_tax[j].exit_remainder_amount;
                     j+=1;
                     if (depreciation != undefined) {
                         this.cgt_tax[j] = new CGTTaxedAmount(params,
-                                                             `Depreciation, purchaser ${i}`,
-                                                             params.purchasers[i],
-                                                             depreciation,
-                                                             enabled_cnt);
+                                                      `Depreciation, purchaser ${i}`,
+                                                      params.purchasers[i],
+                                                      depreciation,
+                                                      enabled_cnt);
                         this.add(this.cgt_tax[j]);
+                        total_au_cgt += -this.cgt_tax[j].exit_remainder_amount;
+                        j+=1;
                     }
+                }
+            }
+
+            // JP source CGT on any JP property: resident or non-resident rates per purchaser,
+            // long/short-term by holding period. For AU-resident purchasers the AU CGT above
+            // also applies (worldwide gains); FITO credits the JP CGT against it, capped at
+            // the AU CGT. For JP-resident purchasers this node is the whole liability.
+            if (params.location.country === "JPN") {
+                const jp_cgt = new JpSourceCgt(params, asset_appreciation, depreciation, enabled_cnt);
+                this.add(jp_cgt);
+                if (hasAuResident(params)) {
+                    const fito_cgt = new ForeignIncomeTaxOffsetCgt(jp_cgt, total_au_cgt);
+                    this.sub(fito_cgt);
                 }
             }
         }
@@ -165,8 +196,13 @@ export class EquityReturn extends Expense {
 
         this.sub(this.initial_equity);
         if ((ownership_cost != undefined) && (investment_income_to_pay_principal != undefined) ) {
-            // FeedEquity calculates cash shortfall: (interest + principal + expenses) - rental_income
-            // Note: investment_income_to_pay_principal is NetInvestmentIncome which has rental_income as a component
+            // FeedEquity shows the cash shortfall the owner must inject each year:
+            // (interest + principal + expenses) − rental income. It is LINKED, not
+            // subtracted: rent, interest and expenses are already netted in
+            // NetInvestmentIncome, and principal is already cash-out in cash_flow
+            // and equity-in via RetainedEquity. Subtracting it here as well (as the
+            // code did while it happened to read zero) would count the shortfall twice
+            // in InvestmentReturn = NetInvestmentIncome + EquityReturn.
             const net_investment_income = investment_income_to_pay_principal as unknown as NetInvestmentIncome;
             this.feed_equity = new FeedEquity(
                 params,
@@ -175,7 +211,7 @@ export class EquityReturn extends Expense {
                 ownership_cost.loan_principle,
                 ownership_cost.cost_expenses
             );
-            this.sub(this.feed_equity);
+            this.link(this.feed_equity);
         }
 
 
@@ -224,7 +260,7 @@ export class FeeOnRentalIncome extends Expense {
 export class TaxOnRentalIncome extends Expense {
     constructor(params: Params,  gross_income: Expense, fees: Expense) {
         super("Rental Income Tax",
-              "Tax on rental income from property.", Expense.ONE_YEAR);
+              "Tax on rental income from property (domestic case — property & purchaser in same jurisdiction).", Expense.ONE_YEAR);
 
         // Only applies to investment properties
         if (params.config.owner_occupier) {
@@ -242,9 +278,15 @@ export class TaxOnRentalIncome extends Expense {
         }
         for (let i=0; i < purchaser_cnt; i++) {
             if (params.purchasers[i].enable) {
+                // Only fire for the domestic case (purchaser tax_residence matches property country).
+                // Cross-jurisdictional cases are routed through AuTaxOnForeignRentalIncome
+                // (which accounts for AU-allowable deductions) + JpNonResidentRentalTax + FITO.
+                const tax_residence = effectiveTaxResidence(params, params.purchasers[i]);
+                if (tax_residence !== params.location.country) continue;
+
                 const taxed_amount = new TaxedAmountWithDeduction(
                     `Rent Income for purchaser ${i}`,
-                    params.purchasers[i], 
+                    params.purchasers[i],
                     gross_income, fees,enabled_cnt);
                 this.add(taxed_amount);
             }
@@ -337,35 +379,26 @@ export class TaxBenefit extends Expense {
             return;
         }
 
-        // Only applies to Australian tax system for now
-        // Japan has different tax treatment which could be added later
-        if (params.location.country === "AUS") {
-
-            // Tax benefit calculation uses the average deduction over the hold period as a compromise.
-            // In reality, deductible interest decreases each year as principal is paid down,
-            // and tax rates may also change over time, making year-by-year calculation complex.
-            // Using the average captures the overall tax benefit while avoiding the compounding
-            // error of applying only the first year's amount to all years.
-            const per_owner =  total_claim / total_purchasers;
-
-            // Calculate marginal tax on the deductions
-            // Negative because it's a benefit (reduces tax)
-            let tax_savings = 0;
-
-            for (const purchaser of params.purchasers) {
-                if (purchaser.enable) {
-                    const tax_result = TaxBracket.MarginalTax(purchaser.income, per_owner);
-                    tax_savings += tax_result.amount;
-                }
-            }
-            // Tax benefit is the amount saved, so it's a negative expense (income)
-            this.is_known = true;
-            this.update_repeating(tax_savings);
-        } else {
-            // For other countries, no tax benefit calculation yet
-            this.is_known = true;
-            this.update_repeating(0);
+        // Tax benefit applies to each purchaser at their tax-residence MTR.
+        // For AU residents, deductions reduce AU tax on assessable income (including foreign
+        // rental income — AU residents are taxed on worldwide income, so the same deductions
+        // apply whether the property is in AU or overseas).
+        //
+        // For JP residents, the tax-benefit calc against JP brackets is a future extension
+        // (JpNonResidentRentalTax handles the JP-side tax via MarginalTaxFor("JPN", ...),
+        // but it's not surfaced as a "benefit" in this aggregator). Currently only AU MTR
+        // benefit is captured here.
+        const per_owner =  total_claim / total_purchasers;
+        let tax_savings = 0;
+        for (const purchaser of params.purchasers) {
+            if (!purchaser.enable) continue;
+            const tax_residence = effectiveTaxResidence(params, purchaser);
+            if (tax_residence !== "AUS") continue;
+            const tax_result = TaxBracket.MarginalTaxFor("AUS", purchaser.income, per_owner);
+            tax_savings += tax_result.amount;
         }
+        this.is_known = true;
+        this.update_repeating(tax_savings);
     }
 }
 
@@ -377,11 +410,13 @@ export class FeedEquity extends Expense {
                 loan_principal: Expense,
                 ongoing_expenses: Expense) {
 
-        // Calculate actual cash flows
-        const rental_cash_in = rental_income.annual();
-        const interest_out = loan_interest.annual();
-        const principal_out = loan_principal.annual();
-        const expenses_out = ongoing_expenses.annual();
+        // Actual cash flows, averaged over the hold (interest and principal are
+        // upfront/exit-remainder nodes, so annual() would read 0 for them).
+        const hold = params.config.hold_term;
+        const rental_cash_in = rental_income.periodic(hold, Expense.ONE_YEAR);
+        const interest_out = loan_interest.periodic(hold, Expense.ONE_YEAR);
+        const principal_out = loan_principal.periodic(hold, Expense.ONE_YEAR);
+        const expenses_out = ongoing_expenses.periodic(hold, Expense.ONE_YEAR);
         const total_cash_out = interest_out + principal_out + expenses_out;
         const cash_shortfall = total_cash_out - rental_cash_in;
 
@@ -442,8 +477,11 @@ export class NetInvestmentIncome extends Expense {
     public rental_income: NetRentalIncome;
     public tax_deductible_expenses: TaxDeductibleExpenses;
     public tax_benefits : GrossTaxBenefits;
+    public jp_non_resident_rental_tax?: JpNonResidentRentalTax;
+    public au_tax_on_foreign_rental?: AuTaxOnForeignRentalIncome;
+    public fito_rental?: ForeignIncomeTaxOffsetRental;
 
-    constructor(params: Params, loan_amount: number, 
+    constructor(params: Params, loan_amount: number,
                 ownership_cost: CostOfOwnership, depreciation: Expense) {
         super("Net Investment Income",
               "Income or loss from property after expenses.");
@@ -455,6 +493,26 @@ export class NetInvestmentIncome extends Expense {
         this.add(this.rental_income);
         this.sub(this.tax_deductible_expenses);
         this.add(this.tax_benefits);
+
+        // Cross-jurisdictional tax surfaces (AU resident + JP property).
+        // These classes self-gate: each is a no-op for same-jurisdiction scenarios.
+        const split = params.purchasers.filter(p => p.enable).length || 1;
+        if (params.location.country === "JPN" && !params.config.owner_occupier) {
+            // Both bases deduct the same things: all ongoing outgoings (JP property taxes,
+            // insurance, body corp), mortgage interest over the hold, and depreciation.
+            this.jp_non_resident_rental_tax = new JpNonResidentRentalTax(
+                params, this.rental_income.rental_income, this.rental_income.rental_fee,
+                ownership_cost.cost_expenses, ownership_cost.loan_interest, depreciation, split);
+            this.au_tax_on_foreign_rental = new AuTaxOnForeignRentalIncome(
+                params, this.rental_income.rental_income, this.rental_income.rental_fee,
+                ownership_cost.cost_expenses, ownership_cost.loan_interest, depreciation, split);
+            this.fito_rental = new ForeignIncomeTaxOffsetRental(
+                this.jp_non_resident_rental_tax, this.au_tax_on_foreign_rental);
+
+            this.sub(this.jp_non_resident_rental_tax);
+            this.sub(this.au_tax_on_foreign_rental);
+            this.add(this.fito_rental);
+        }
 
     }
 
@@ -478,19 +536,20 @@ export class InvestmentReturn extends Expense {
     constructor(params: Params, loan_amount: number, property_value: number,
                 ownership_cost: CostOfOwnership) {
         super("Investment Return",
-              "Total return from property investment including equity gains, rental income, and tax benefits.");
+              "Total return over the hold: net investment income + equity return − principal repaid from cash. " +
+              "Principal appears in Retained Equity as equity built and is cash paid out during the hold, so it is netted here; " +
+              "what remains is net income + appreciation − CGT − sunk purchase costs.");
 
-        // NOTE - this needs to be changed to remove depreciation from sum.
-        // NOTE - depreciation needs to be used only as tax benefit.
-
-
-        // Depreciation needs to be used to change the CGT calculation.
+        // Depreciation is used only as a tax deduction (GrossTaxBenefits) and to adjust the CGT cost base.
         this.depreciation = new Depreciation(params);
         this.investment_income = new NetInvestmentIncome(params, loan_amount, ownership_cost, this.depreciation);
         this.equity_return = new EquityReturn(params, loan_amount, property_value, ownership_cost, this.depreciation, this.investment_income);
 
         this.add(this.investment_income);
         this.add(this.equity_return);
+        // Principal repaid during the hold: counted as equity in RetainedEquity, but it was cash out
+        // (cost_of_ownership.cash_flow). Net it so the root is a true return on cash invested.
+        this.sub(ownership_cost.loan_principle);
 
 
     }

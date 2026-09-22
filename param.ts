@@ -7,10 +7,18 @@ export class Property {
     value= 0;
     land_value= 0;
     building_value= 0;
-    rent= 0;    
+    rent= 0;
     max_rent=0;
-    rent_fee_ratio = 0;    
+    rent_fee_ratio = 0;
     community_title=false;
+    commercial = false;                   // commercial vs residential
+    gst_treatment = "n/a";                // "going_concern" | "taxable_input_credit" | "n/a"
+    body_corp_fees_annual = 0;            // annual body corp / strata levies (AUD or JPY per location.country)
+    lease_type = "gross";                 // "gross" | "net" | "semi_gross" — outgoings recovery from tenant (commercial only)
+    construction = "rc";                  // "wood" (22yr) | "light_steel" (27yr) | "heavy_steel" (34yr) | "rc" (47yr) — JP statutory life
+    building_age = 0;                     // years at acquisition; drives JP used-building depreciation formula
+    renovation_value = 0;                 // capital improvement / 資本的支出 spend, tracked as a separate depreciation account
+    renovation_useful_life = 0;           // years; explicit per lead based on scope of work. 0 → no renovation deduction
 }
 export class Economy {
     loan_rate= 0;
@@ -20,6 +28,7 @@ export class Economy {
 export class Purchaser {
     enable = false;
     income = 0;
+    tax_residence = "";                   // "AUS" | "JPN" | "" (default empty → falls back to params.location.country for backwards compat)
 }
 export class Location {
     country="";
@@ -36,6 +45,8 @@ export class Config {
     new_home = false;
     first_home = false;
     owner_occupier=true;
+    cgt_reform = true;                    // apply the announced post-1-July-2027 CGT rules (no discount, max(MTR, 30%)) to the share of the gain accrued after that date; false → 50% discount throughout
+    purchase_date = "";                   // ISO YYYY-MM-DD; "" → today. With hold_term it fixes the sale date and hence the pre/post-reform split of the gain
 }
 export class NewHome {
     build_cost= 0;

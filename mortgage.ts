@@ -85,20 +85,18 @@ export class MortgageInterest extends Expense {
 
     constructor(params: Params, loan_amount: LoanAmount) {
         super("Mortgage Interest",
-              "The interest payments required to service the property loan.")
-        const total_amount = MortgageInterest.calculateTotalInterest(
-            loan_amount.upfront_amount,
-            params.economy.loan_rate,
-            params.config.loan_term
-        );
-        const remainder_amount = MortgageInterest.calculateRemainingInterest(
+              "Interest paid to service the loan during the hold, per the amortisation schedule (front-loaded: early years are mostly interest). " +
+              "Interest that would fall due after the sale is never incurred and is not shown.")
+        // Only the interest actually paid during the hold is a cost; there is no
+        // "remainder" — interest after the sale simply never happens.
+        const paid_during_hold = MortgageInterest.calculateInterestPaid(
             loan_amount.upfront_amount,
             params.economy.loan_rate,
             params.config.loan_term,
             params.config.hold_term
         );
         this.link(loan_amount);
-        this.update_upfront(total_amount, remainder_amount);
+        this.update_upfront(paid_during_hold, 0);
     }
 }
 
@@ -112,12 +110,10 @@ export class MortgageEquityAtEndOfHoldTerm extends Expense {
             params.config.hold_term
         );
         super(`Mortgage Paid Principal Amount at ${params.config.hold_term} years`,
-              `The principal payed off at ${params.config.hold_term} years out of ${params.config.loan_term} years.`);
+              `The principal paid off during the ${params.config.hold_term}-year hold (of a ${params.config.loan_term}-year loan), per the amortisation schedule.`);
 
-        const remainder_ratio =  (params.config.hold_term >= params.config.loan_term) ? 0 : ((params.config.loan_term - params.config.hold_term) / params.config.loan_term);
-        const exit_remainder_amount = remainder_amount * remainder_ratio;
-
-        this.update_upfront(remainder_amount, exit_remainder_amount);
+        // All of this principal is cash paid out during the hold; nothing remains at exit.
+        this.update_upfront(remainder_amount, 0);
     }
 }
 
@@ -130,12 +126,10 @@ export class MortgagePayoffAtEndOfHoldTerm extends Expense {
             params.config.hold_term
         );
         super(`Mortgage Payoff Amount at ${params.config.hold_term} years`,
-              `The principal remaining at ${params.config.hold_term} years out of ${params.config.loan_term} years.`);
+              `The loan balance still owing at hold-end (${params.config.hold_term} of ${params.config.loan_term} years), repaid from the sale proceeds. Shown as an at-exit amount; not a cost during the hold.`);
 
-        const remainder_ratio =  (params.config.hold_term >= params.config.loan_term) ? 0 : ((params.config.loan_term - params.config.hold_term) / params.config.loan_term);
-        const exit_remainder_amount = remainder_amount * remainder_ratio;
-
-        this.update_upfront(remainder_amount, exit_remainder_amount);
+        // A balance owed at exit: preserved in full (nothing accrues per period).
+        this.update_upfront(remainder_amount, remainder_amount);
     }
 }
 
@@ -152,16 +146,14 @@ export class EquityInPropertyAtTerm extends Expense {
 export class MortgagePrincipal extends Expense {
     constructor(params: Params, loan_amount: LoanAmount) {
         super("Mortgage Principal",
-              "The amount of money that has been borrowed and needs to be repaid.");
-        // NOTE - this remainder should never include appreciation/deprecation.
-        // TODO - should this be calculated based on non linear repayment schedule with interest payed earlier.?
-        const equity = new MortgageEquityAtEndOfHoldTerm(params, loan_amount);
-        const principal = new MortgagePayoffAtEndOfHoldTerm(params, loan_amount);
-        
-        this.add(equity);
-        this.add(principal);
-        this.link(new EquityInPropertyAtTerm(equity, loan_amount));
-            
+              "Principal repaid during the hold, per the amortisation schedule (interest is front-loaded, so this is well below a straight-line share of the loan). " +
+              "The balance still owing at hold-end is repaid from the sale proceeds and is shown linked, not summed.");
+        const paid = new MortgageEquityAtEndOfHoldTerm(params, loan_amount);
+        const payoff = new MortgagePayoffAtEndOfHoldTerm(params, loan_amount);
+
+        this.add(paid);
+        this.link(payoff);
+        this.link(new EquityInPropertyAtTerm(paid, loan_amount));
     }
 }
 

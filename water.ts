@@ -384,6 +384,14 @@ export class NewWater extends Expense {
               "Water costs that must be paid by the property owner.",
              Expense.ONE_YEAR)
 
+        if (!params.property.has_water_connection) {
+            // No plumbing fixture / meter on the property (e.g. a storage unit) —
+            // no state water/sewer service charge applies.
+            this.is_known = true;
+            this.update_repeating(0);
+            return;
+        }
+
         switch (params.location.state) {
             case "NSW":
                 this.add(new TaxesNswWaterRates(params));

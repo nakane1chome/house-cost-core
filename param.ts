@@ -19,6 +19,7 @@ export class Property {
     building_age = 0;                     // years at acquisition; drives JP used-building depreciation formula
     renovation_value = 0;                 // capital improvement / 資本的支出 spend, tracked as a separate depreciation account
     renovation_useful_life = 0;           // years; explicit per lead based on scope of work. 0 → no renovation deduction
+    has_water_connection = true;          // false for properties with no water/sewer connection (e.g. a storage unit with no plumbing fixture) — zeroes the AU water/sewer expense (water.ts)
 }
 export class Economy {
     loan_rate= 0;

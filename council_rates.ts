@@ -14,6 +14,24 @@ import { Postcode2Lga } from "./postcode2lga"
 const ADELAIDE_AV_RATIO_RESIDENTIAL = 0.05;
 const ADELAIDE_AV_RATIO_COMMERCIAL = 0.04;
 
+// NSW Wollongong LGA — Business (Light Industrial) rating category, 2025-2026.
+// Source: Wollongong City Council "Attachment 3: Revenue Policy, Rates, Annual
+// Charges and Fees 2025-2026" — Rating Structure and Pricing table.
+// NSW ad valorem rates apply to the Valuer-General's assessed LAND VALUE, which
+// this model does not track for strata properties (land_value is conventionally
+// 0 for strata — see docs/leads/SCHEMA.md). Approximated here as a ratio of
+// purchase price, the same technique as the Adelaide branch above, but
+// UNCALIBRATED: unlike the Adelaide ratios (checked against two disclosed rates
+// notices), no real Wollongong rates notice or land valuation has been checked
+// against this ratio. Refine once one is available for an actual lead.
+// Only the Business - Light Industrial category is modelled (chosen as the
+// closest real-world categorisation for a self-storage/warehouse unit); other
+// Wollongong Business sub-categories (Ordinary, Commercial, 3c Regional, Heavy
+// Industrial, Heavy 1 Activity 1) and the Residential category are not modelled.
+const NSW_WOLLONGONG_LAND_VALUE_RATIO_ESTIMATE_UNCALIBRATED = 0.30;
+const NSW_WOLLONGONG_LIGHT_INDUSTRIAL_AD_VALOREM = 0.00714772;
+const NSW_WOLLONGONG_LIGHT_INDUSTRIAL_MINIMUM = 549.68;
+
 export class CouncilRates extends Expense {
 
     constructor(params: Params) {
@@ -37,6 +55,14 @@ export class CouncilRates extends Expense {
             if (council < minimum) council = minimum;
             const rll = rll_rate * annual_value;
             this.update_repeating(council + rll);
+            return;
+        }
+
+        if (lga == 'nsw.wollongong' && params.property.commercial) {
+            const land_value_estimate = params.property.value * NSW_WOLLONGONG_LAND_VALUE_RATIO_ESTIMATE_UNCALIBRATED;
+            let amount = NSW_WOLLONGONG_LIGHT_INDUSTRIAL_AD_VALOREM * land_value_estimate;
+            if (amount < NSW_WOLLONGONG_LIGHT_INDUSTRIAL_MINIMUM) amount = NSW_WOLLONGONG_LIGHT_INDUSTRIAL_MINIMUM;
+            this.update_repeating(amount);
             return;
         }
 

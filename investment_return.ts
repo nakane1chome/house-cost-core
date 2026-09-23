@@ -14,6 +14,7 @@ import { JpNonResidentRentalTax } from "./jp_non_resident_rental_tax";
 import { AuTaxOnForeignRentalIncome } from "./au_tax_on_foreign_rental";
 import { ForeignIncomeTaxOffsetRental, ForeignIncomeTaxOffsetCgt } from "./foreign_income_tax_offset";
 import { JpSourceCgt } from "./jp_source_cgt";
+import { Gearing } from "./gearing";
 
 /**
  * Helper: resolve the investor tax residence with backwards-compat fallback to location.country.
@@ -531,7 +532,8 @@ export class InvestmentReturn extends Expense {
 
     public depreciation: Depreciation;
     public investment_income: NetInvestmentIncome;
-    public equity_return: EquityReturn;    
+    public equity_return: EquityReturn;
+    public gearing: Gearing;
 
     constructor(params: Params, loan_amount: number, property_value: number,
                 ownership_cost: CostOfOwnership) {
@@ -544,6 +546,17 @@ export class InvestmentReturn extends Expense {
         this.depreciation = new Depreciation(params);
         this.investment_income = new NetInvestmentIncome(params, loan_amount, ownership_cost, this.depreciation);
         this.equity_return = new EquityReturn(params, loan_amount, property_value, ownership_cost, this.depreciation, this.investment_income);
+
+        // Gearing is a diagnostic recombination of already-composed values (rent, PM fee,
+        // outgoings, year-1 interest) — a separate view of the model, not a new cash flow.
+        // Deliberately not add/sub/linked into this root's own total (mirrors how
+        // CostOfOwnership exposes .cost and .cash_flow as two independent views).
+        this.gearing = new Gearing(
+            params, loan_amount,
+            this.investment_income.rental_income.rental_income,
+            this.investment_income.rental_income.rental_fee,
+            this.investment_income.tax_deductible_expenses.ongoing_expenses
+        );
 
         this.add(this.investment_income);
         this.add(this.equity_return);

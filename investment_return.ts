@@ -30,29 +30,68 @@ function hasAuResident(params: Params): boolean {
 }
 
 /**
- * Represents the equity retained in the property
+ * Equity held on day one: property value less the amount borrowed.
  */
-export class RetainedEquity extends Expense {
-    constructor(params: Params, loan_amount: number, property_value: number) {
-        super("Retained Equity",
-              "Equity in the property at hold-end: the initial equity (value − loan) plus principal paid down.");
+export class EquityAtPurchase extends Expense {
+    constructor(loan_amount: number, property_value: number) {
+        super("Equity at Purchase",
+              "Property value less the amount borrowed, on the day of purchase.");
+        this.update_upfront(property_value - loan_amount, 0);
+    }
+}
 
-        // Calculate how much principal has been paid off during hold_term
+/**
+ * Loan principal repaid by the end of the loan term: the whole loan, which becomes equity.
+ */
+export class PrincipalRepaid extends Expense {
+    constructor(params: Params, loan_amount: number) {
+        super("Principal Repaid by Loan End",
+              `The whole loan, repaid as equity over the ${params.config.loan_term}-year term.`);
+        this.update_upfront(loan_amount, 0);
+    }
+}
+
+/**
+ * Loan balance still owing when the property is sold at hold-end; it comes out of the
+ * sale proceeds, so it is subtracted from the equity. Over the full loan term nothing is
+ * owing, so its upfront (loan-term) amount is 0 and the balance appears only in the hold
+ * view: the exit remainder is negative, making accumulated(hold) = 0 − (−balance) = balance.
+ */
+export class OutstandingPrincipal extends Expense {
+    constructor(params: Params, loan_amount: number) {
+        super("Outstanding Principal",
+              `Loan balance still owing after the ${params.config.hold_term}-year hold, repaid from the sale proceeds. ` +
+              `Zero if the property is held to the end of the ${params.config.loan_term}-year loan.`);
         const remaining_principal = MortgageInterest.calculateRemainingPrincipal(
             loan_amount,
             params.economy.loan_rate,
             params.config.loan_term,
             params.config.hold_term
         );
+        this.update_upfront(0, -remaining_principal);
+    }
+}
 
-        const principal_paid = loan_amount - remaining_principal;
+/**
+ * Represents the equity retained in the property
+ */
+export class RetainedEquity extends Expense {
+    public at_purchase: EquityAtPurchase;
+    public principal_repaid: PrincipalRepaid;
+    public outstanding_principal: OutstandingPrincipal;
 
-        // Add the initial deposit/equity
-        const initial_equity = property_value - loan_amount;
+    constructor(params: Params, loan_amount: number, property_value: number) {
+        super("Retained Equity",
+              "Equity in the property: equity at purchase plus the principal repaid by the end of the loan, " +
+              "less the balance still owing at sale. At hold-end this is value − loan balance still owing; " +
+              "over the full loan term it is the whole property value.");
 
-        // Total equity at hold-end = initial equity + principal paid (i.e. value − loan balance).
-        const retained_equity = initial_equity + principal_paid;
-        this.update_upfront(retained_equity, 0);
+        this.at_purchase = new EquityAtPurchase(loan_amount, property_value);
+        this.principal_repaid = new PrincipalRepaid(params, loan_amount);
+        this.outstanding_principal = new OutstandingPrincipal(params, loan_amount);
+        this.add(this.at_purchase);
+        this.add(this.principal_repaid);
+        this.sub(this.outstanding_principal);
     }
 }
 

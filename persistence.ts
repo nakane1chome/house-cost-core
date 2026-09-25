@@ -34,6 +34,27 @@ export function validateParams(data: unknown): data is Params {
 }
 
 /**
+ * Converts a saved property from the old format (separate land_value and
+ * building_value amounts) to building_percent, in place. Needed because
+ * land_value/building_value are now read-only getters derived from
+ * building_percent: copying them onto a Property would throw.
+ */
+export function migrateLegacyProperty(saved: unknown): void {
+    if (!saved || typeof saved !== 'object') return;
+    const property = saved as Record<string, unknown>;
+    const value = typeof property.value === 'number' ? property.value : 0;
+    if (property.building_percent === undefined && value > 0) {
+        if (typeof property.building_value === 'number') {
+            property.building_percent = property.building_value / value * 100;
+        } else if (typeof property.land_value === 'number') {
+            property.building_percent = (value - property.land_value) / value * 100;
+        }
+    }
+    delete property.land_value;
+    delete property.building_value;
+}
+
+/**
  * Save params to URL query string
  */
 export function saveToURL(params: Params): string {
@@ -63,6 +84,7 @@ export function loadFromURL(targetParams: Params): boolean {
         }
 
         // Copy validated data to targetParams
+        migrateLegacyProperty(parsed.property);
         Object.assign(targetParams.location, parsed.location);
         Object.assign(targetParams.property, parsed.property);
         Object.assign(targetParams.config, parsed.config);
@@ -110,6 +132,7 @@ export function loadFromCookie(targetParams: Params, cookieName = 'house_cost_pa
                 }
 
                 // Copy validated data to targetParams
+                migrateLegacyProperty(parsed.property);
                 Object.assign(targetParams.location, parsed.location);
                 Object.assign(targetParams.property, parsed.property);
                 Object.assign(targetParams.config, parsed.config);

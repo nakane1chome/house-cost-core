@@ -26,7 +26,8 @@ async function loadRatesData() {
             console.log(`config: Loaded rates from: file`);
             return JSON.parse(ratesContent);
         } else {
-            const url = `${window.location.protocol}//${window.location.host}/js/rates.json`
+            // Relative to the page, so builds served from a subdirectory (e.g. /aus/) find it.
+            const url = new URL('js/rates.json', window.location.href).toString();
             const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}: ${url}`);
@@ -72,6 +73,7 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         p.property.rent = (p.property.value * 0.05 / 52);
         p.property.max_rent = 5000;
         p.property.rent_fee_ratio = 0.1;
+        p.property.building_percent = 40;  // rough default; set per property (e.g. Div 43 basis / price)
         p.location.postcode =postcode || "5000";
         //p.location.state = PostcodeToState(p.location.country, p.location.postcode);
         p.location.state = PostcodeToState(p.location.postcode);
@@ -104,6 +106,7 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         p.location.state = "TOKYO";
 
         p.property.value =  50000000;
+        p.property.building_percent = 50;  // rough default; set per property (e.g. 路線価 land estimate)
         p.config.deposit = p.property.value*0.20; // 20%
         p.config.loan_term = 35;
         p.config.hold_term = 35;

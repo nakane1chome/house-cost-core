@@ -5,8 +5,10 @@
 
 export class Property {
     value= 0;
-    land_value= 0;
-    building_value= 0;
+    // Share of `value` attributable to the building (0–100); the rest is land. This is
+    // the only stored split — land and building amounts are derived from it, so they
+    // always sum to `value`. Serialised (JSON) params therefore carry only the percent.
+    building_percent= 0;
     rent= 0;
     max_rent=0;
     rent_fee_ratio = 0;
@@ -20,6 +22,11 @@ export class Property {
     renovation_value = 0;                 // capital improvement / 資本的支出 spend, tracked as a separate depreciation account
     renovation_useful_life = 0;           // years; explicit per lead based on scope of work. 0 → no renovation deduction
     has_water_connection = true;          // false for properties with no water/sewer connection (e.g. a storage unit with no plumbing fixture) — zeroes the AU water/sewer expense (water.ts)
+
+    // Depreciable building basis (AU Div 43 / JP 減価償却) and building assessment base.
+    get building_value(): number { return this.value * this.building_percent / 100; }
+    // Land share: JP fixed asset / city planning / acquisition tax land base.
+    get land_value(): number { return this.value - this.building_value; }
 }
 export class Economy {
     loan_rate= 0;

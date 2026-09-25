@@ -17,9 +17,10 @@ const ADELAIDE_AV_RATIO_COMMERCIAL = 0.04;
 // NSW Wollongong LGA — Business (Light Industrial) rating category, 2025-2026.
 // Source: Wollongong City Council "Attachment 3: Revenue Policy, Rates, Annual
 // Charges and Fees 2025-2026" — Rating Structure and Pricing table.
-// NSW ad valorem rates apply to the Valuer-General's assessed LAND VALUE, which
-// this model does not track for strata properties (land_value is conventionally
-// 0 for strata — see docs/leads/SCHEMA.md). Approximated here as a ratio of
+// NSW ad valorem rates apply to the Valuer-General's assessed LAND VALUE. The
+// model's land share (value − building, from property.building_percent) is a
+// price split, not the VG's rating valuation — for strata it is an apportioned
+// share of the parent lot — so it is not used here. Approximated instead as a ratio of
 // purchase price, the same technique as the Adelaide branch above, but
 // UNCALIBRATED: unlike the Adelaide ratios (checked against two disclosed rates
 // notices), no real Wollongong rates notice or land valuation has been checked

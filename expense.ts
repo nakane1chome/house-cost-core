@@ -67,6 +67,14 @@ export class Expense  {
         const total_repeating = this.annual() * hold_term;
         return total_repeating + total_fixed;
     }
+    // The loan-term view: the amount if the property were held to the end of the loan.
+    // Mirrors accumulated(): by then the exit remainder has also been incurred and
+    // recurring amounts have run for the whole term. Limits: recurring amounts are
+    // extrapolated at their hold-average rate (e.g. rent, depreciation), and amounts
+    // modelled for the hold only (e.g. asset appreciation) are not extended.
+    over_loan_term(loan_term: number): number {
+        return this.upfront_amount + this.annual() * loan_term;
+    }
     
 
     link(e: Expense) : void {

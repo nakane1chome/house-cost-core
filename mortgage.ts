@@ -110,17 +110,21 @@ export class MortgageInterest extends Expense {
 
 export class MortgageEquityAtEndOfHoldTerm extends Expense {
     constructor(params: Params, loan_amount: LoanAmount) {
-        const remainder_amount = loan_amount.upfront_amount - MortgageInterest.calculateRemainingPrincipal(
+        const remaining = MortgageInterest.calculateRemainingPrincipal(
             loan_amount.upfront_amount,
             params.economy.loan_rate,
             params.config.loan_term,
             params.config.hold_term
         );
-        super(`Mortgage Paid Principal Amount at ${params.config.hold_term} years`,
-              `The principal paid off during the ${params.config.hold_term}-year hold (of a ${params.config.loan_term}-year loan), per the amortisation schedule.`);
+        // View-neutral label: the same node is shown in the hold and loan-term views.
+        super("Principal Repaid",
+              `Hold view: the principal paid off during the ${params.config.hold_term}-year hold, per the amortisation schedule. ` +
+              `Loan-term view: the whole loan, repaid by the end of the ${params.config.loan_term}-year term.`);
 
-        // All of this principal is cash paid out during the hold; nothing remains at exit.
-        this.update_upfront(remainder_amount, 0);
+        // Full-term + exit-remainder convention: the whole loan is repaid over the loan
+        // term; the balance still owing at hold-end is the remainder, so the hold view
+        // (upfront − remainder) is the principal actually paid during the hold.
+        this.update_upfront(loan_amount.upfront_amount, Math.max(0, remaining));
     }
 }
 

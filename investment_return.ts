@@ -15,6 +15,7 @@ import { AuTaxOnForeignRentalIncome } from "./au_tax_on_foreign_rental";
 import { ForeignIncomeTaxOffsetRental, ForeignIncomeTaxOffsetCgt } from "./foreign_income_tax_offset";
 import { JpSourceCgt } from "./jp_source_cgt";
 import { Gearing } from "./gearing";
+import { effectiveWeeklyRent } from "./effective_rent";
 
 /**
  * Helper: resolve the investor tax residence with backwards-compat fallback to location.country.
@@ -262,9 +263,14 @@ export class EquityReturn extends Expense {
  * Represents rental income from investment property
  */
 export class GrossRentalIncome extends Expense {
-    constructor(params: Params) {
+    constructor(params: Params, equivalent_rent?: Expense) {
+        const relative = params.property.rent_mode === "relative" && equivalent_rent !== undefined;
+        const pct = params.property.rent_relative_percent;
         super("Gross Rental Income",
-              "Income received from renting out the property.", Expense.ONE_WEEK);
+              "Income received from renting out the property." + (relative
+                ? ` Set at ${pct === 0 ? "" : (pct > 0 ? pct + "% above " : -pct + "% below ")}Equivalent Rent (the cost of owning).`
+                : ""),
+              Expense.ONE_WEEK);
 
         // Only applies to investment properties
         if (params.config.owner_occupier) {
@@ -273,14 +279,14 @@ export class GrossRentalIncome extends Expense {
             return;
         }
 
-        const weekly_rent = params.property.rent;
+        const weekly_rent = effectiveWeeklyRent(params, equivalent_rent);
         this.is_known = true;
         this.update_repeating(weekly_rent);
     }
 }
 
 export class FeeOnRentalIncome extends Expense {
-    constructor(params: Params) {
+    constructor(params: Params, gross_rent: Expense) {
         super("Rental Management Fees",
               "Fees related to renting out the property.", Expense.ONE_WEEK);
 
@@ -291,7 +297,8 @@ export class FeeOnRentalIncome extends Expense {
             return;
         }
 
-        const weekly_fee = params.property.rent * params.property.rent_fee_ratio;
+        // Fee on the rent actually charged (which may follow Equivalent Rent).
+        const weekly_fee = gross_rent.periodic(params.config.hold_term, Expense.ONE_WEEK) * params.property.rent_fee_ratio;
         this.is_known = true;
         this.update_repeating(weekly_fee);
     }
@@ -340,13 +347,13 @@ export class NetRentalIncome extends Expense {
     public rental_fee: FeeOnRentalIncome;
     public rental_tax: TaxOnRentalIncome;
 
-    constructor(params: Params) {
+    constructor(params: Params, equivalent_rent?: Expense) {
         super("Net Rental Income",
               "Income received from renting out the property, minus expenses and tax.", Expense.ONE_WEEK);
 
         // Initialize properties first
-        this.rental_income = new GrossRentalIncome(params);
-        this.rental_fee = new FeeOnRentalIncome(params);
+        this.rental_income = new GrossRentalIncome(params, equivalent_rent);
+        this.rental_fee = new FeeOnRentalIncome(params, this.rental_income);
         this.rental_tax = new TaxOnRentalIncome(params, this.rental_income, this.rental_fee);
 
         // Only applies to investment properties
@@ -526,7 +533,7 @@ export class NetInvestmentIncome extends Expense {
         super("Net Investment Income",
               "Income or loss from property after expenses.");
 
-        this.rental_income = new NetRentalIncome(params);
+        this.rental_income = new NetRentalIncome(params, ownership_cost.cost);
         this.tax_deductible_expenses = new TaxDeductibleExpenses(params, ownership_cost);
         this.tax_benefits = new GrossTaxBenefits(params, this.tax_deductible_expenses, depreciation);
 

@@ -52,6 +52,11 @@ export function migrateLegacyProperty(saved: unknown): void {
     }
     delete property.land_value;
     delete property.building_value;
+    // Saved before rent modes existed: the saved weekly rent was a fixed amount; keep it
+    // rather than letting the new default (relative to Equivalent Rent) replace it.
+    if (typeof property.rent === 'number' && property.rent_mode === undefined) {
+        property.rent_mode = 'fixed';
+    }
 }
 
 /**

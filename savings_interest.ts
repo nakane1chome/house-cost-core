@@ -10,9 +10,9 @@ export class SavingsInterest extends Expense {
 
     constructor(params: Params) {
         super("Downpayment (Deposit) Sacrificed Interest",
-              "The expected return on investing a sum over the hold term for a given interest rate. " +
-            "The interest compounds over the hold term. " +
-            "Only the interest from one year is calculated.", Expense.ONE_YEAR);
+              "The interest the deposit would have earned if invested instead, compounding monthly. " +
+            "The hold view counts the interest forgone during the hold; the loan-term view counts it over the whole loan term.",
+              Expense.ONE_YEAR);
         // from  http://math.ucsd.edu/~wgarner/math4c/textbook/chapter4/compoundinterest.htm
         // A = P ( 1 + r/n) ^ nt
         // P = Principal
@@ -20,12 +20,14 @@ export class SavingsInterest extends Expense {
         // n = compounded times per year
         // t = term in years
         const r = (params.economy.save_rate / 100.0);
-        const t = params.config.hold_term;
         const n = 12;
         const P = params.config.deposit;
-        const A = P * Math.pow((1 + r/n) , n*t) ;
-        const amount = A - P;
-        this.update_repeating(amount/t);
-        //this.update_upfront(amount, 0);
+        const interest = (t: number) => P * Math.pow((1 + r/n), n*t) - P;
+        // Full-term + exit-remainder convention (as for OffsetSavings): the upfront amount
+        // is the interest forgone over the loan term; the part after the hold is the exit
+        // remainder, so the hold view (upfront − remainder) is the hold's interest.
+        const over_hold = interest(params.config.hold_term);
+        const over_loan = interest(Math.max(params.config.loan_term, params.config.hold_term));
+        this.update_upfront(over_loan, over_loan - over_hold);
     }
 }

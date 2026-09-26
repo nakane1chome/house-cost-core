@@ -85,18 +85,25 @@ export class MortgageInterest extends Expense {
 
     constructor(params: Params, loan_amount: LoanAmount) {
         super("Mortgage Interest",
-              "Interest paid to service the loan during the hold, per the amortisation schedule (front-loaded: early years are mostly interest). " +
-              "Interest that would fall due after the sale is never incurred and is not shown.")
-        // Only the interest actually paid during the hold is a cost; there is no
-        // "remainder" — interest after the sale simply never happens.
+              "Interest paid to service the loan, per the amortisation schedule (front-loaded: early years are mostly interest). " +
+              "The hold view counts the interest paid during the hold; the loan-term view counts all interest over the loan term, " +
+              "including interest that would only fall due if the property were held to the end of the loan.")
+        // Full-term + exit-remainder convention: upfront = all interest over the loan term;
+        // the interest after the sale is the exit remainder, so the hold view is the
+        // interest actually paid during the hold.
         const paid_during_hold = MortgageInterest.calculateInterestPaid(
             loan_amount.upfront_amount,
             params.economy.loan_rate,
             params.config.loan_term,
             params.config.hold_term
         );
+        const total_interest = MortgageInterest.calculateTotalInterest(
+            loan_amount.upfront_amount,
+            params.economy.loan_rate,
+            params.config.loan_term
+        );
         this.link(loan_amount);
-        this.update_upfront(paid_during_hold, 0);
+        this.update_upfront(total_interest, Math.max(0, total_interest - paid_during_hold));
     }
 }
 

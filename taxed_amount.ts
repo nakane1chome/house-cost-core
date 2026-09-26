@@ -13,14 +13,24 @@ export class TaxedAmount extends Expense {
     constructor(reason: string,
                 purchaser: Purchaser, 
                 deposit_interest: Expense, 
-                split: number) {
-        const my_amount = deposit_interest.annual() / split;
+                split: number,
+                hold_term: number) {
+        // deposit_interest follows the full-term + exit-remainder convention: the hold
+        // amount is (upfront − exit remainder). Tax each year on this purchaser's share of
+        // the average yearly interest over the hold, at their marginal rate.
+        const hold_interest = deposit_interest.upfront_amount - deposit_interest.exit_remainder_amount;
+        const my_amount = hold_term > 0 ? hold_interest / hold_term / split : 0;
         const tax_result = TaxBracket.MarginalTax(purchaser.income, my_amount);
         super(`Tax on ${reason}`,
               `The tax that would have been paid on interest (${my_amount}) or other returns made on the deposit, ` +
             "if it had not been used as equity for the property purchase.",
              Expense.ONE_YEAR);
-        this.update_repeating(tax_result.amount);
+        // Carry the tax in the same convention: the effective rate over the hold is applied
+        // to the full-loan-term interest (an approximation for the loan-term view — later
+        // years' compounded interest could sit in a higher bracket).
+        const rate = my_amount > 0 ? tax_result.amount / my_amount : 0;
+        this.update_upfront(rate * deposit_interest.upfront_amount / split,
+                            rate * deposit_interest.exit_remainder_amount / split);
     }
 }
 

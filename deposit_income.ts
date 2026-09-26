@@ -31,7 +31,7 @@ export class OpportunityCostOfDownPayment extends Expense {
                 const taxed_amount = new TaxedAmount(
                     `interest on downpayment, purchaser ${i} `,
                     params.purchasers[i], 
-                    this.savings_interest,enabled_cnt);
+                    this.savings_interest,enabled_cnt, params.config.hold_term);
                 this.sub(taxed_amount);
             }
         }

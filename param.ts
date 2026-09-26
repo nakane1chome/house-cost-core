@@ -12,6 +12,9 @@ export class Property {
     // Annual building insurance premium as a % of building_value; the only stored
     // insurance figure (the amount is derived). See defaultInsurancePercent (config.ts).
     insurance_percent= 0;
+    // Annual maintenance budget as a % of building_value; the amount is derived.
+    // See defaultMaintenancePercent (config.ts).
+    maintenance_percent= 0;
     rent= 0;                              // weekly rent when rent_mode is "fixed"
     // "relative": weekly rent = Equivalent Rent × (1 + rent_relative_percent/100), following
     // the cost of owning; "fixed": the amount in rent is kept. See effective_rent.ts.

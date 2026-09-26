@@ -22,6 +22,16 @@ export function defaultInsurancePercent(country: string, community_title: boolea
     return country === "JPN" ? 0.3 : 0.4;
 }
 
+/**
+ * Default annual maintenance budget, as a % of building value. Rule of thumb ~1–2% a
+ * year when the owner maintains the whole building; 1% is used. For strata/community
+ * title the levy's sinking fund covers common property and the owner maintains only
+ * the interior, so half. The same rates are used for AU and JP.
+ */
+export function defaultMaintenancePercent(country: string, community_title: boolean): number {
+    return community_title ? 0.5 : 1.0;
+}
+
 export function ConfigCurrency(country: string) : string {
     if (country == "JPN") {
         return "￥";
@@ -89,6 +99,7 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         p.property.rent_fee_ratio = 0.1;
         p.property.building_percent = 40;  // rough default; set per property (e.g. Div 43 basis / price)
         p.property.insurance_percent = defaultInsurancePercent("AUS", p.property.community_title);
+        p.property.maintenance_percent = defaultMaintenancePercent("AUS", p.property.community_title);
         p.location.postcode =postcode || "5000";
         //p.location.state = PostcodeToState(p.location.country, p.location.postcode);
         p.location.state = PostcodeToState(p.location.postcode);
@@ -123,6 +134,7 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         p.property.value =  50000000;
         p.property.building_percent = 50;  // rough default; set per property (e.g. 路線価 land estimate)
         p.property.insurance_percent = defaultInsurancePercent("JPN", p.property.community_title);
+        p.property.maintenance_percent = defaultMaintenancePercent("JPN", p.property.community_title);
         p.config.deposit = p.property.value*0.20; // 20%
         p.config.loan_term = 35;
         p.config.hold_term = 35;

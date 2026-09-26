@@ -4,6 +4,7 @@
 */
 
 import { Params } from "./param";
+import { defaultInsurancePercent, defaultMaintenancePercent } from "./config";
 
 /**
  * Validates params object structure
@@ -60,6 +61,19 @@ export function migrateLegacyProperty(saved: unknown): void {
 }
 
 /**
+ * Fields added after a scenario was saved keep the ConfigLoad default, which assumes a
+ * non-strata title. Re-apply the title-dependent defaults for any such field missing
+ * from the saved property, using the saved title.
+ */
+export function applyMissingPropertyDefaults(target: Params, saved: unknown): void {
+    const property = (saved && typeof saved === 'object') ? saved as Record<string, unknown> : {};
+    const country = target.location.country;
+    const strata = target.property.community_title;
+    if (property.insurance_percent === undefined) target.property.insurance_percent = defaultInsurancePercent(country, strata);
+    if (property.maintenance_percent === undefined) target.property.maintenance_percent = defaultMaintenancePercent(country, strata);
+}
+
+/**
  * Save params to URL query string
  */
 export function saveToURL(params: Params): string {
@@ -98,6 +112,7 @@ export function loadFromURL(targetParams: Params): boolean {
         if (parsed.purchasers) {
             targetParams.purchasers = parsed.purchasers;
         }
+        applyMissingPropertyDefaults(targetParams, parsed.property);
 
         return true;
     } catch (e) {
@@ -146,6 +161,7 @@ export function loadFromCookie(targetParams: Params, cookieName = 'house_cost_pa
                 if (parsed.purchasers) {
                     targetParams.purchasers = parsed.purchasers;
                 }
+                applyMissingPropertyDefaults(targetParams, parsed.property);
 
                 return true;
             } catch (e) {

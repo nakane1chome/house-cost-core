@@ -15,6 +15,7 @@ import {PropertyInsurance} from "./property_insurance"
 import {JapanFixedAssetTax} from "./japan_fixed_asset_tax"
 import { CityPlanningTax } from "./city_planning_tax"
 import { BodyCorporateFees } from "./body_corp_fees"
+import { Maintenance } from "./maintenance"
 import { TenantOutgoingsRecovery } from "./tenant_outgoings_recovery"
 import { NodeInfo } from "./node_info";
 
@@ -82,6 +83,8 @@ export class CostOfOwnership {
         this.cost_expenses.add(insurance);
         const body_corp = new BodyCorporateFees(params);
         this.cost_expenses.add(body_corp);
+        // Landlord's cost: not passed to TenantOutgoingsRecovery below.
+        this.cost_expenses.add(new Maintenance(params));
         // Tenant outgoings recovery (commercial leases only): subtracts a
         // mirror of recovered outgoings from cost_expenses. Zero for gross
         // leases and residential.

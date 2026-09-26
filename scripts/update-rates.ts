@@ -189,9 +189,12 @@ async function main() {
   currentRates.lastUpdated = now;
   
   // Update Australian rates
+  // Rates are percentages; round derived ones to 2 dp so float noise (e.g. 4.35 − 0.5 =
+  // 3.8499999999999996) doesn't reach rates.json and the UI.
+  const pct = (v: number) => Math.round(v * 100) / 100;
   currentRates.rates.AUS.cashRate = rbaData.rate;
-  currentRates.rates.AUS.mortgageRate = rbaData.rate + currentRates.rates.AUS.margin;
-  currentRates.rates.AUS.savingsRate = Math.max(0.1, rbaData.rate - 0.5);
+  currentRates.rates.AUS.mortgageRate = pct(rbaData.rate + currentRates.rates.AUS.margin);
+  currentRates.rates.AUS.savingsRate = pct(Math.max(0.1, rbaData.rate - 0.5));
   if (ausRateChanged) {
     currentRates.rates.AUS.lastChanged = rbaData.lastChanged;
   }

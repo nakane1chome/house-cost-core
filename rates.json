@@ -4,7 +4,7 @@
     "AUS": {
       "cashRate": 4.35,
       "mortgageRate": 6.35,
-      "savingsRate": 3.8499999999999996,
+      "savingsRate": 3.85,
       "appreciationRate": 4.0,
       "source": "RBA",
       "sourceUrl": "https://www.rba.gov.au/statistics/cash-rate/",

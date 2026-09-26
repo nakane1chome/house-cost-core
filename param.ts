@@ -9,6 +9,9 @@ export class Property {
     // the only stored split — land and building amounts are derived from it, so they
     // always sum to `value`. Serialised (JSON) params therefore carry only the percent.
     building_percent= 0;
+    // Annual building insurance premium as a % of building_value; the only stored
+    // insurance figure (the amount is derived). See defaultInsurancePercent (config.ts).
+    insurance_percent= 0;
     rent= 0;
     max_rent=0;
     rent_fee_ratio = 0;

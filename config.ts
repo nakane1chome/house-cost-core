@@ -8,6 +8,20 @@ import { PostcodeToState } from "./aus_state";
 import * as fs from "fs";
 import * as path from "path";
 
+/**
+ * Default annual building-insurance premium, as a % of building value.
+ * Approximate market ranges (not yet checked against real quotes): AU house building
+ * cover ~0.2–0.4% of rebuild value (higher in cyclone/flood areas), AU commercial
+ * ~0.1–0.3%; JP fire + earthquake cover ~0.2–0.4% wooden, ~0.1–0.25% RC.
+ * Strata/community title: 0 — the body corporate insures the building and the premium
+ * is already in the strata levy (body_corp_fees_annual); an owner's landlord/contents
+ * cover can still be entered.
+ */
+export function defaultInsurancePercent(country: string, community_title: boolean): number {
+    if (community_title) return 0;
+    return country === "JPN" ? 0.3 : 0.4;
+}
+
 export function ConfigCurrency(country: string) : string {
     if (country == "JPN") {
         return "￥";
@@ -74,6 +88,7 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
         p.property.max_rent = 5000;
         p.property.rent_fee_ratio = 0.1;
         p.property.building_percent = 40;  // rough default; set per property (e.g. Div 43 basis / price)
+        p.property.insurance_percent = defaultInsurancePercent("AUS", p.property.community_title);
         p.location.postcode =postcode || "5000";
         //p.location.state = PostcodeToState(p.location.country, p.location.postcode);
         p.location.state = PostcodeToState(p.location.postcode);
@@ -107,6 +122,7 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
 
         p.property.value =  50000000;
         p.property.building_percent = 50;  // rough default; set per property (e.g. 路線価 land estimate)
+        p.property.insurance_percent = defaultInsurancePercent("JPN", p.property.community_title);
         p.config.deposit = p.property.value*0.20; // 20%
         p.config.loan_term = 35;
         p.config.hold_term = 35;

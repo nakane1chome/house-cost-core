@@ -6,25 +6,16 @@
 import { Params } from "./param";
 import { Expense } from "./expense";
 
+/**
+ * Annual building insurance: property.insurance_percent of the building value (the land
+ * is not insured). Defaults come from defaultInsurancePercent (config.ts); for strata the
+ * default is 0 because the body corporate's policy is paid through the levy.
+ */
 export class PropertyInsurance extends Expense {
-
-    // rough guess From coles insurance
-    private static _BASE = 300;
-    private static _START = 150000;
-    private static _SLOPE = 130.0 / 100000.0;
-
     constructor(params: Params) {
         super("Property Insurance",
-             "Cost of insuring the buildings on the property.",
+             `Cost of insuring the building: ${params.property.insurance_percent}% of the building value per year.`,
              Expense.ONE_YEAR)
-        const r = params.property.value - PropertyInsurance._START;
-        let amount = 0;
-        if (r < 0) {
-            amount =  PropertyInsurance._BASE;
-        } else {
-            amount = PropertyInsurance._BASE + PropertyInsurance._SLOPE*r;
-        }
-        this.update_repeating(amount);
+        this.update_repeating(params.property.building_value * params.property.insurance_percent / 100);
     }
 }
-

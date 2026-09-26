@@ -3,7 +3,7 @@
    Housing Cost Model
 */
 
-import { Expense, UpfrontExpense, SunkUpfrontExpense, PreservedUpfrontExpense } from "./expense";
+import { Expense, UpfrontExpense, SunkUpfrontExpense } from "./expense";
 import { Params } from "./param";
 import { GrantAmount } from "./grant_amount";
 import { StampDuty } from "./stamp_duty";
@@ -66,6 +66,18 @@ export class NewHomeCosts extends Expense {
 }
 
 
+/**
+ * The buyer's deposit. Paid in full at purchase whatever the hold, so it counts in full
+ * in both the hold and the loan-term views of the loan amount (no exit remainder).
+ */
+export class Deposit extends Expense {
+    constructor(params: Params) {
+        super("Deposit",
+              "Loan deposit — the buyer's equity contribution, paid in full at purchase whatever the hold.");
+        this.update_upfront(params.config.deposit, 0);
+    }
+}
+
 export class LoanAmount extends Expense {
 
     //public grants :GrantAmount;
@@ -73,7 +85,7 @@ export class LoanAmount extends Expense {
     //public transfer_reg :TransferReg;
     
     public value: UpfrontExpense;
-    public deposit: PreservedUpfrontExpense;
+    public deposit: Deposit;
     public transaction_costs: TransactionCosts;
 
     constructor(params: Params) {
@@ -86,9 +98,7 @@ export class LoanAmount extends Expense {
                                          params.config.loan_term,
                                          params.config.hold_term);
         
-        this.deposit = new PreservedUpfrontExpense("Deposit",
-                                           "Loan deposit — buyer's equity contribution; remains intact at exit (property-value changes are modelled separately).",
-                                           params.config.deposit);
+        this.deposit = new Deposit(params);
         
         this.transaction_costs = new TransactionCosts(params);
 

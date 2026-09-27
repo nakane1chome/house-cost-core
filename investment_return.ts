@@ -183,7 +183,10 @@ export class CGTax extends Expense {
                 this.add(jp_cgt);
                 if (hasAuResident(params)) {
                     const fito_cgt = new ForeignIncomeTaxOffsetCgt(jp_cgt, total_au_cgt);
-                    this.sub(fito_cgt);
+                    // ForeignIncomeTaxOffsetCgt stores the credit as a positive exit_remainder_amount
+                    // (see its own doc comment) — add(), not sub(), so it offsets jp_cgt's negative
+                    // (cost) exit_remainder instead of doubling it.
+                    this.add(fito_cgt);
                 }
             }
         }

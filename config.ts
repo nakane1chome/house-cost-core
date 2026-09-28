@@ -133,6 +133,7 @@ export async function ConfigLoad(p: Params, country: string, country_fixed: bool
 
         p.property.value =  50000000;
         p.property.building_percent = 50;  // rough default; set per property (e.g. 路線価 land estimate)
+        p.purchase_costs.conveyancing = 150000;  // 司法書士 (judicial scrivener) fee for the transfer, ~¥100–200k
         p.property.insurance_percent = defaultInsurancePercent("JPN", p.property.community_title);
         p.property.maintenance_percent = defaultMaintenancePercent("JPN", p.property.community_title);
         p.config.deposit = p.property.value*0.20; // 20%

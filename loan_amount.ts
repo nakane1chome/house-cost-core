@@ -8,6 +8,7 @@ import { Params } from "./param";
 import { GrantAmount } from "./grant_amount";
 import { StampDuty } from "./stamp_duty";
 import { JapanContractStampDuty,  JapanPropertyAcquisitionTax, JapanTitleRegistrationStampDuty } from "./japan_stamp_duty";
+import { JapanBrokerageFee } from "./japan_brokerage";
 import { TransferReg } from "./transfer_reg";
 import { CommercialGST } from "./commercial_gst";
 
@@ -21,6 +22,14 @@ export class TransactionCosts extends Expense {
             this.add(new JapanContractStampDuty(params));            
             this.add(new JapanPropertyAcquisitionTax(params));            
             this.add(new JapanTitleRegistrationStampDuty(params));
+            if (params.purchase_costs.brokered) {
+                this.add(new JapanBrokerageFee(params));
+            }
+            if (params.purchase_costs.conveyancing > 0) {
+                this.add(new SunkUpfrontExpense("Judicial Scrivener Fee (JP, 司法書士)",
+                    "Scrivener's fee for the title transfer (and mortgage) registration; the registration tax itself is computed separately.",
+                    params.purchase_costs.conveyancing));
+            }
         }
         if (params.location.country == "AUS") {
             this.sub(new GrantAmount(params));

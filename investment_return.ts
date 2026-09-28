@@ -16,6 +16,7 @@ import { ForeignIncomeTaxOffsetRental, ForeignIncomeTaxOffsetCgt } from "./forei
 import { JpSourceCgt } from "./jp_source_cgt";
 import { Gearing } from "./gearing";
 import { effectiveWeeklyRent } from "./effective_rent";
+import { SaleCosts, NetCapitalGain } from "./sale_costs";
 
 /**
  * Helper: resolve the investor tax residence with backwards-compat fallback to location.country.
@@ -127,7 +128,7 @@ export class CGTax extends Expense {
     public cgt_tax : Array<Expense>;   // CGTTaxedAmount (AU) and, for JP property, JpSourceCgt / FITO nodes
     
     constructor(params: Params, 
-                asset_appreciation: AssetAppreciation,
+                asset_appreciation: Expense,   // the capital gain: appreciation net of sale costs
                 depreciation?: Expense) {
 
         super("Capital Gains Tax",
@@ -208,6 +209,8 @@ export class EquityReturn extends Expense {
     public initial_equity: InitialEquity;
     public feed_equity?: FeedEquity;
     public cg_tax: CGTax;
+    public sale_costs: SaleCosts;
+    public net_capital_gain: NetCapitalGain;
 
     constructor(params: Params, 
                 loan_amount: number, 
@@ -230,12 +233,16 @@ export class EquityReturn extends Expense {
         this.retained_equity = new RetainedEquity(params, loan_amount, property_value);
         this.asset_appreciation = new AssetAppreciation(params, property_value);
         this.initial_equity = new InitialEquity(params);
-        this.cg_tax = new CGTax(params, this.asset_appreciation, depreciation);
+        this.sale_costs = new SaleCosts(params);
+        // CGT is charged on the gain net of selling costs.
+        this.net_capital_gain = new NetCapitalGain(this.asset_appreciation, this.sale_costs);
+        this.cg_tax = new CGTax(params, this.net_capital_gain, depreciation);
 
 
         this.add(this.retained_equity);
         this.add(this.asset_appreciation);
 
+        this.sub(this.sale_costs);
         this.sub(this.cg_tax);
 
         this.sub(this.initial_equity);

@@ -21,7 +21,7 @@ import { Params } from "./param";
 import { Expense, SunkUpfrontExpense } from "./expense";
 import { jpBuildingAssessmentFactor } from "./depreciation";
 
-const ASSESSED_VALUE_RATIO = 0.7;   // approximate 固定資産税評価額 / market value
+export const ASSESSED_VALUE_RATIO = 0.7;   // approximate 固定資産税評価額 / market value
 const FIXED_ASSET_RATE = 0.014;     // statutory 1.4%
 const RESIDENTIAL_LAND_FACTOR = 1 / 6;   // small-scale residential land reduction (≤200㎡)
 

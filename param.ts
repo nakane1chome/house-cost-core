@@ -64,15 +64,17 @@ export class Config {
     first_home = false;
     owner_occupier=true;
     cgt_reform = true;                    // apply the announced post-1-July-2027 CGT rules (no discount, max(MTR, 30%)) to the share of the gain accrued after that date; false → 50% discount throughout
-    purchase_date = "";                   // ISO YYYY-MM-DD; "" → today. With hold_term it fixes the sale date and hence the pre/post-reform split of the gain
+    purchase_date = "";
+    sale_agent_percent = 2.5;             // AU agent commission at sale, % of sale price incl. GST (JP uses the brokerage formula)                   // ISO YYYY-MM-DD; "" → today. With hold_term it fixes the sale date and hence the pre/post-reform split of the gain
 }
 export class NewHome {
     build_cost= 0;
     establish_cost= 0;
 }
 export class PurchaseCosts {
-    conveyancing = 0;
+    conveyancing = 0;                     // AU conveyancing; JP 司法書士 (judicial scrivener) fee
     inspections = 0;
+    brokered = true;                      // JP: bought (and sold) through a broker (仲介) → 仲介手数料; false for 売主直
 }
 export class Offset {
     starting_balance = 0;

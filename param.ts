@@ -32,6 +32,11 @@ export class Property {
     renovation_value = 0;                 // capital improvement / 資本的支出 spend, tracked as a separate depreciation account
     renovation_useful_life = 0;           // years; explicit per lead based on scope of work. 0 → no renovation deduction
     has_water_connection = true;          // false for properties with no water/sewer connection (e.g. a storage unit with no plumbing fixture) — zeroes the AU water/sewer expense (water.ts)
+    furnished = false;                    // true when the landlord/operator bears utilities directly (e.g. a furnished/serviced-apartment lease) — gates furnished_utilities.ts
+    water_annual = 0;                     // landlord-borne annual water cost (AUD or JPY per location.country); consumed only when furnished=true
+    electricity_annual = 0;               // landlord-borne annual electricity cost; consumed only when furnished=true
+    gas_annual = 0;                       // landlord-borne annual gas cost; consumed only when furnished=true
+    internet_annual = 0;                  // landlord-borne annual internet cost; consumed only when furnished=true
 
     // Depreciable building basis (AU Div 43 / JP 減価償却) and building assessment base.
     get building_value(): number { return this.value * this.building_percent / 100; }

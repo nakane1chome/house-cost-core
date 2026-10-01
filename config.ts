@@ -5,6 +5,7 @@
 
 import { Params, Purchaser } from "./param";
 import { PostcodeToState } from "./aus_state";
+import { tokyoElectricityAnnual, tokyoGasAnnual, tokyoWaterAnnual } from "./tokyo_utilities";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -30,6 +31,22 @@ export function defaultInsurancePercent(country: string, community_title: boolea
  */
 export function defaultMaintenancePercent(country: string, community_title: boolean): number {
     return community_title ? 0.5 : 1.0;
+}
+
+/**
+ * Default landlord-borne annual utility costs for furnished-apartment mode
+ * (property.furnished — see furnished_utilities.ts). Tokyo-sourced; see
+ * tokyo_utilities.ts for the full base-charge/usage/rate breakdown and
+ * citations. No default for AU (not researched, not requested) — 0.
+ */
+export function defaultElectricityAnnual(country: string): number {
+    return country === "JPN" ? tokyoElectricityAnnual() : 0;
+}
+export function defaultGasAnnual(country: string): number {
+    return country === "JPN" ? tokyoGasAnnual() : 0;
+}
+export function defaultWaterAnnual(country: string): number {
+    return country === "JPN" ? tokyoWaterAnnual() : 0;
 }
 
 export function ConfigCurrency(country: string) : string {
